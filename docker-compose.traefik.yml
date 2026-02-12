@@ -12,13 +12,14 @@ services:
     environment:
       POSTGRES_DB: ${DATABASE_NAME:-dialogix_crm_dev}
       POSTGRES_USER: ${DATABASE_USER:-dialogix}
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
       PGDATA: /var/lib/postgresql/data/pgdata
+    secrets:
+      - postgres_password_secret
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - dialogix-internal
-
+  
   # Redis 7 - Cache e Sessões
   redis:
     image: redis:7-alpine
@@ -43,10 +44,9 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 3000
-      DATABASE_URL: postgresql://${DATABASE_USER:-dialogix}:${DATABASE_PASSWORD}@postgres:5432/${DATABASE_NAME:-dialogix_crm_dev}
+      DATABASE_URL: postgresql://${DATABASE_USER:-dialogix}:/run/secrets/postgres_password_secret@postgres:5432/${DATABASE_NAME:-dialogix_crm_dev}
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-7d}
       FRONTEND_URL: ${FRONTEND_URL}
@@ -73,6 +73,8 @@ services:
     networks:
       - traefik-public
       - dialogix-internal
+    secrets:
+      - postgres_password_secret
 
   # Frontend (React + Vite)
   frontend:
