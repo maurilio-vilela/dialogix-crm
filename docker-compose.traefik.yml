@@ -1,0 +1,137 @@
+# 🐳 Docker Compose - Dialogix CRM
+# Produção com Traefik (rede traefik-public)
+
+version: '3.8'
+
+services:
+  # PostgreSQL 15 - Banco de Dados Principal
+  postgres:
+    image: postgres:15-alpine
+    container_name: dialogix-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME:-dialogix_crm_dev}
+      POSTGRES_USER: ${DATABASE_USER:-dialogix}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER:-dialogix}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dialogix-internal
+
+  # Redis 7 - Cache e Sessões
+  redis:
+    image: redis:7-alpine
+    container_name: dialogix-redis-dev
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--pass", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - dialogix-internal
+
+  # Backend API (NestJS)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: dialogix-backend:latest
+    container_name: dialogix-backend-dev
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3000
+      DATABASE_URL: postgresql://${DATABASE_USER:-dialogix}:${DATABASE_PASSWORD}@postgres:5432/${DATABASE_NAME:-dialogix_crm_dev}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-7d}
+      FRONTEND_URL: ${FRONTEND_URL}
+    volumes:
+      - backend_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-public"
+      
+      # API Dev - HTTPS
+      - "traefik.http.routers.dialogix-api-dev.rule=Host(`api-dev.dialogix.com.br`)"
+      - "traefik.http.routers.dialogix-api-dev.entrypoints=websecure"
+      - "traefik.http.routers.dialogix-api-dev.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.dialogix-api-dev.service=dialogix-api-dev"
+      - "traefik.http.services.dialogix-api-dev.loadbalancer.server.port=3000"
+      
+      # Redirect HTTP -> HTTPS
+      - "traefik.http.routers.dialogix-api-dev-http.rule=Host(`api-dev.dialogix.com.br`)"
+      - "traefik.http.routers.dialogix-api-dev-http.entrypoints=web"
+      - "traefik.http.routers.dialogix-api-dev-http.middlewares=redirect-to-https@docker"
+      
+      # CORS Middleware
+      - "traefik.http.middlewares.dialogix-cors.headers.accesscontrolallowmethods=GET,POST,PUT,PATCH,DELETE,OPTIONS"
+      - "traefik.http.middlewares.dialogix-cors.headers.accesscontrolalloworiginlist=https://dev.dialogix.com.br"
+      - "traefik.http.middlewares.dialogix-cors.headers.accesscontrolallowcredentials=true"
+      - "traefik.http.middlewares.dialogix-cors.headers.accesscontrolallowheaders=*"
+      - "traefik.http.routers.dialogix-api-dev.middlewares=dialogix-cors"
+    networks:
+      - traefik-public
+      - dialogix-internal
+
+  # Frontend (React + Vite)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_WS_URL: ${VITE_WS_URL}
+    image: dialogix-frontend:latest
+    container_name: dialogix-frontend-dev
+    restart: unless-stopped
+    depends_on:
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-public"
+      
+      # Frontend Dev - HTTPS
+      - "traefik.http.routers.dialogix-frontend-dev.rule=Host(`dev.dialogix.com.br`)"
+      - "traefik.http.routers.dialogix-frontend-dev.entrypoints=websecure"
+      - "traefik.http.routers.dialogix-frontend-dev.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.dialogix-frontend-dev.service=dialogix-frontend-dev"
+      - "traefik.http.services.dialogix-frontend-dev.loadbalancer.server.port=80"
+      
+      # Redirect HTTP -> HTTPS
+      - "traefik.http.routers.dialogix-frontend-dev-http.rule=Host(`dev.dialogix.com.br`)"
+      - "traefik.http.routers.dialogix-frontend-dev-http.entrypoints=web"
+      - "traefik.http.routers.dialogix-frontend-dev-http.middlewares=redirect-to-https@docker"
+    networks:
+      - traefik-public
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  backend_uploads:
+    driver: local
+
+networks:
+  traefik-public:
+    external: true
+  dialogix-internal:
+    driver: bridge
