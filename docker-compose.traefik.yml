@@ -25,6 +25,8 @@ services:
     container_name: dialogix-redis-dev
     restart: unless-stopped
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD} # Adicionado para garantir que a senha seja passada
     volumes:
       - redis_data:/data
     networks:
