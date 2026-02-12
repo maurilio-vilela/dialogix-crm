@@ -2,74 +2,45 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
   });
 
-  // Global prefix
-  app.setGlobalPrefix('api/v1');
-
   // CORS
   app.enableCors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: process.env.FRONTEND_URL || '*',
     credentials: true,
   });
 
-  // Cookie parser
-  app.use(cookieParser());
+  // Global prefix
+  app.setGlobalPrefix(process.env.API_PREFIX || 'api/v1');
 
-  // Global validation pipe
+  // Validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
-      forbidNonWhitelisted: true,
       transform: true,
-      transformOptions: {
-        enableImplicitConversion: true,
-      },
+      forbidNonWhitelisted: true,
     }),
   );
 
-  // Swagger documentation
+  // Swagger
   const config = new DocumentBuilder()
     .setTitle('Dialogix CRM API')
-    .setDescription('API Documentation for Dialogix CRM - Omnichannel Platform')
+    .setDescription('CRM Omnichannel com IA - API Documentation')
     .setVersion('1.0')
     .addBearerAuth()
-    .addTag('auth', 'Authentication endpoints')
-    .addTag('users', 'User management')
-    .addTag('contacts', 'Contact management')
-    .addTag('conversations', 'Conversation management')
-    .addTag('messages', 'Message management')
-    .addTag('channels', 'Channel management')
-    .addTag('pipelines', 'Sales pipeline')
-    .addTag('deals', 'Deal management')
-    .addTag('tasks', 'Task management')
-    .addTag('tags', 'Tag management')
-    .addTag('quick-replies', 'Quick replies')
-    .addTag('ai-agents', 'AI Agents')
-    .addTag('webhooks', 'Webhooks')
-    .addTag('subscriptions', 'Subscriptions')
-    .addTag('payments', 'Payments')
-    .addTag('analytics', 'Analytics and reports')
     .build();
-
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
   const port = process.env.PORT || 3000;
-  await app.listen(port);
-
-  console.log('');
-  console.log('🚀 Dialogix CRM Backend started successfully!');
-  console.log('');
-  console.log(`📡 API Server: http://localhost:${port}/api/v1`);
-  console.log(`📚 API Docs: http://localhost:${port}/api/docs`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log('');
+  await app.listen(port, '0.0.0.0');
+  
+  console.log(`🚀 Application is running on: http://localhost:${port}`);
+  console.log(`📚 Swagger docs: http://localhost:${port}/api/docs`);
 }
 
 bootstrap();
