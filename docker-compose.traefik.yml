@@ -19,7 +19,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - dialogix-internal
-  
+
   # Redis 7 - Cache e Sessões
   redis:
     image: redis:7-alpine
@@ -44,7 +44,11 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 3000
-      DATABASE_URL: postgresql://${DATABASE_USER:-dialogix}:/run/secrets/postgres_password_secret@postgres:5432/${DATABASE_NAME:-dialogix_crm_dev}
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: ${DATABASE_USER:-dialogix}
+      DATABASE_NAME: ${DATABASE_NAME:-dialogix_crm_dev}
+      DATABASE_PASSWORD_FILE: /run/secrets/postgres_password_secret # Caminho para o secret
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_SECRET: ${JWT_SECRET}
