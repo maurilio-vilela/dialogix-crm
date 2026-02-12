@@ -120,3 +120,5 @@ networks:
 secrets:
   redis_password_secret:
     external: true
+  postgres_password_secret:
+    external: true
