@@ -1,0 +1,138 @@
+# 🐳 Docker Compose - Ambiente de Desenvolvimento
+# Dialogix CRM - Stack Completo Local
+
+version: '3.8'
+
+services:
+  # PostgreSQL 15 - Banco de Dados Principal
+  postgres:
+    image: postgres:15-alpine
+    container_name: dialogix-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: dialogix_crm
+      POSTGRES_USER: dialogix
+      POSTGRES_PASSWORD: dialogix_dev_2026
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dialogix"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dialogix-network
+
+  # Redis 7 - Cache e Sessões
+  redis:
+    image: redis:7-alpine
+    container_name: dialogix-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass dialogix_redis_2026
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - dialogix-network
+
+  # Backend API (NestJS)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: dialogix-backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://dialogix:dialogix_dev_2026@postgres:5432/dialogix_crm
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: dialogix_redis_2026
+      JWT_SECRET: dialogix_jwt_super_secret_dev_2026_change_in_production
+      JWT_EXPIRATION: 7d
+      JWT_REFRESH_EXPIRATION: 30d
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - backend_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: npm run start:dev
+    networks:
+      - dialogix-network
+
+  # Frontend (React + Vite)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: dialogix-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:3000/api/v1
+      VITE_WS_URL: ws://localhost:3000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    command: npm run dev -- --host 0.0.0.0
+    networks:
+      - dialogix-network
+
+  # Adminer (Opcional) - Interface Web para PostgreSQL
+  adminer:
+    image: adminer:latest
+    container_name: dialogix-adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    depends_on:
+      - postgres
+    networks:
+      - dialogix-network
+
+  # Redis Commander (Opcional) - Interface Web para Redis
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: dialogix-redis-commander
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      REDIS_HOSTS: local:redis:6379:0:dialogix_redis_2026
+    depends_on:
+      - redis
+    networks:
+      - dialogix-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  backend_uploads:
+    driver: local
+
+networks:
+  dialogix-network:
+    driver: bridge
