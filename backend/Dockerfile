@@ -10,8 +10,8 @@ RUN apk add --no-cache python3 make g++
 COPY package*.json ./
 COPY tsconfig*.json ./
 
-# Instalar dependências
-RUN npm ci --only=production && npm cache clean --force
+# Instalar dependências (usar npm install ao invés de npm ci)
+RUN npm install --production=false && npm cache clean --force
 
 # Copiar código fonte
 COPY . .
@@ -28,7 +28,7 @@ WORKDIR /app
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nestjs -u 1001
 
-# Copiar dependências e build do stage anterior
+# Copiar apenas node_modules de produção e build
 COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nestjs:nodejs /app/package*.json ./
