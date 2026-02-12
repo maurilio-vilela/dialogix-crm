@@ -62,13 +62,14 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-public"
+      
+      # API Dev - HTTPS
       - "traefik.http.routers.dialogix-api-dev.rule=Host(`api-dev.dialogix.com.br`)"
       - "traefik.http.routers.dialogix-api-dev.entrypoints=websecure"
-      - "traefik.http.routers.dialogix-api-dev.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.dialogix-api-dev.tls.certresolver=myresolver"
       - "traefik.http.services.dialogix-api-dev.loadbalancer.server.port=3000"
-      - "traefik.http.routers.dialogix-api-dev-http.rule=Host(`api-dev.dialogix.com.br`)"
-      - "traefik.http.routers.dialogix-api-dev-http.entrypoints=web"
-      - "traefik.http.routers.dialogix-api-dev-http.middlewares=redirect-to-https@docker"
+      
+      # CORS Middleware (mantido)
       - "traefik.http.middlewares.dialogix-cors.headers.accesscontrolallowmethods=GET,POST,PUT,PATCH,DELETE,OPTIONS"
       - "traefik.http.middlewares.dialogix-cors.headers.accesscontrolalloworiginlist=https://dev.dialogix.com.br"
       - "traefik.http.middlewares.dialogix-cors.headers.accesscontrolallowcredentials=true"
@@ -93,13 +94,17 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-public"
+      
+      # Frontend Dev - HTTPS
       - "traefik.http.routers.dialogix-frontend-dev.rule=Host(`dev.dialogix.com.br`)"
       - "traefik.http.routers.dialogix-frontend-dev.entrypoints=websecure"
-      - "traefik.http.routers.dialogix-frontend-dev.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.dialogix-frontend-dev.tls.certresolver=myresolver"
       - "traefik.http.services.dialogix-frontend-dev.loadbalancer.server.port=80"
-      - "traefik.http.routers.dialogix-frontend-dev-http.rule=Host(`dev.dialogix.com.br`)"
-      - "traefik.http.routers.dialogix-frontend-dev-http.entrypoints=web"
-      - "traefik.http.routers.dialogix-frontend-dev-http.middlewares=redirect-to-https@docker"
+      
+      # Redirect HTTP -> HTTPS (removido)
+      # - "traefik.http.routers.dialogix-frontend-dev-http.rule=Host(`dev.dialogix.com.br`)"
+      # - "traefik.http.routers.dialogix-frontend-dev-http.entrypoints=web"
+      # - "traefik.http.routers.dialogix-frontend-dev-http.middlewares=redirect-to-https@docker"
     networks:
       - traefik-public
 
