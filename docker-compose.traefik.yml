@@ -32,10 +32,6 @@ services:
     secrets:
       - redis_password_secret
 
-secrets:
-  redis_password_secret:
-    external: true
-
   # Backend API (NestJS)
   backend:
     build:
@@ -118,3 +114,7 @@ networks:
   dialogix-internal:
     driver: overlay
     name: dialogix-internal-net
+
+secrets:
+  redis_password_secret:
+    external: true
