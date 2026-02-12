@@ -132,4 +132,5 @@ networks:
   traefik-public:
     external: true
   dialogix-internal:
-    driver: bridge
+    driver: overlay
+    name: dialogix-internal-net
