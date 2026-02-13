@@ -6,6 +6,7 @@ import { HealthController } from './health.controller';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { ContactsModule } from './modules/contacts/contacts.module';
+import { ChatModule } from './modules/chat/chat.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { ContactsModule } from './modules/contacts/contacts.module';
     AuthModule,
     UsersModule,
     ContactsModule,
+    ChatModule,
   ],
   controllers: [HealthController],
   providers: [],
