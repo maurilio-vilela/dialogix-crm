@@ -10,9 +10,26 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { ContactForm } from './ContactForm';
 import api from '@/lib/axios';
 import { toast } from 'react-hot-toast';
 import { Plus, Search, Trash2, Edit } from 'lucide-react';
+import * as z from 'zod';
+
+const contactSchema = z.object({
+  name: z.string().min(3, 'O nome deve ter no mínimo 3 caracteres'),
+  email: z.string().email('E-mail inválido').optional().or(z.literal('')),
+  phone: z.string().optional(),
+  company: z.string().optional(),
+});
+type ContactFormData = z.infer<typeof contactSchema>;
 
 interface Contact {
   id: string;
@@ -27,8 +44,11 @@ export function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchContacts = async () => {
+    setLoading(true);
     try {
       const response = await api.get('/contacts');
       setContacts(response.data);
@@ -43,6 +63,21 @@ export function ContactsPage() {
   useEffect(() => {
     fetchContacts();
   }, []);
+  
+  const handleCreateContact = async (data: ContactFormData) => {
+    setIsSubmitting(true);
+    try {
+      await api.post('/contacts', data);
+      toast.success('Contato criado com sucesso!');
+      setIsModalOpen(false);
+      fetchContacts(); // Recarrega a lista
+    } catch (error) {
+      console.error(error);
+      toast.error('Erro ao criar contato.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const filteredContacts = contacts.filter(contact =>
     contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -53,14 +88,28 @@ export function ContactsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Contatos</h2>
+          <h2 className="text-3xl font-bold tracking-tight font-heading">Contatos</h2>
           <p className="text-muted-foreground">
             Gerencie seus clientes e leads em um só lugar.
           </p>
         </div>
-        <Button onClick={() => toast('Em breve: Modal de Novo Contato')}>
-          <Plus className="mr-2 h-4 w-4" /> Novo Contato
-        </Button>
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" /> Novo Contato
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Novo Contato</DialogTitle>
+            </DialogHeader>
+            <ContactForm 
+              onSubmit={handleCreateContact}
+              onCancel={() => setIsModalOpen(false)}
+              isLoading={isSubmitting}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Card>
@@ -83,7 +132,7 @@ export function ContactsPage() {
             <div className="text-center py-10">Carregando...</div>
           ) : filteredContacts.length === 0 ? (
             <div className="text-center py-10 text-muted-foreground">
-              Nenhum contato encontrado.
+              Nenhum contato encontrado. Crie um novo!
             </div>
           ) : (
             <Table>
@@ -92,7 +141,6 @@ export function ContactsPage() {
                   <TableHead>Nome</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Telefone</TableHead>
-                  <TableHead>Empresa</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
@@ -103,7 +151,6 @@ export function ContactsPage() {
                     <TableCell className="font-medium">{contact.name}</TableCell>
                     <TableCell>{contact.email}</TableCell>
                     <TableCell>{contact.phone}</TableCell>
-                    <TableCell>{contact.company || '-'}</TableCell>
                     <TableCell>
                       <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-green-500/10 text-green-500 hover:bg-green-500/20">
                         {contact.status}

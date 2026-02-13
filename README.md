@@ -422,6 +422,6 @@ Para dúvidas ou sugestões sobre o projeto Dialogix CRM, entre em contato.
 
 ---
 
-**Última Atualização**: 11 de Fevereiro de 2025
-**Versão**: 0.1.0 (Alpha)
+**Última Atualização**: 13 de Fevereiro de 2026
+**Versão**: 0.2.0 (Alpha)
 **Status**: 🚧 Em Desenvolvimento
