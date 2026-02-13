@@ -15,21 +15,11 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { ContactForm } from './ContactForm';
+} from "@/components/ui/dialog";
+import { ContactForm, ContactFormData } from './ContactForm';
 import api from '@/lib/axios';
 import { toast } from 'react-hot-toast';
 import { Plus, Search, Trash2, Edit } from 'lucide-react';
-import * as z from 'zod';
-
-const contactSchema = z.object({
-  name: z.string().min(3, 'O nome deve ter no mínimo 3 caracteres'),
-  email: z.string().email('E-mail inválido').optional().or(z.literal('')),
-  phone: z.string().optional(),
-  company: z.string().optional(),
-});
-type ContactFormData = z.infer<typeof contactSchema>;
 
 interface Contact {
   id: string;
@@ -46,6 +36,7 @@ export function ContactsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
 
   const fetchContacts = async () => {
     setLoading(true);
@@ -63,21 +54,43 @@ export function ContactsPage() {
   useEffect(() => {
     fetchContacts();
   }, []);
-  
-  const handleCreateContact = async (data: ContactFormData) => {
+
+  const handleFormSubmit = async (data: ContactFormData) => {
     setIsSubmitting(true);
     try {
-      await api.post('/contacts', data);
-      toast.success('Contato criado com sucesso!');
-      setIsModalOpen(false);
-      fetchContacts(); // Recarrega a lista
+      if (editingContact) {
+        // Update
+        await api.patch(`/contacts/${editingContact.id}`, data);
+        toast.success('Contato atualizado com sucesso!');
+      } else {
+        // Create
+        await api.post('/contacts', data);
+        toast.success('Contato criado com sucesso!');
+      }
+      closeModal();
+      fetchContacts();
     } catch (error) {
       console.error(error);
-      toast.error('Erro ao criar contato.');
+      toast.error('Erro ao salvar contato.');
     } finally {
       setIsSubmitting(false);
     }
   };
+  
+  const openCreateModal = () => {
+    setEditingContact(null);
+    setIsModalOpen(true);
+  };
+  
+  const openEditModal = (contact: Contact) => {
+    setEditingContact(contact);
+    setIsModalOpen(true);
+  };
+  
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditingContact(null);
+  }
 
   const filteredContacts = contacts.filter(contact =>
     contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -93,24 +106,24 @@ export function ContactsPage() {
             Gerencie seus clientes e leads em um só lugar.
           </p>
         </div>
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" /> Novo Contato
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Novo Contato</DialogTitle>
-            </DialogHeader>
-            <ContactForm 
-              onSubmit={handleCreateContact}
-              onCancel={() => setIsModalOpen(false)}
-              isLoading={isSubmitting}
-            />
-          </DialogContent>
-        </Dialog>
+        <Button onClick={openCreateModal}>
+          <Plus className="mr-2 h-4 w-4" /> Novo Contato
+        </Button>
       </div>
+
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-[425px]" onInteractOutside={closeModal}>
+          <DialogHeader>
+            <DialogTitle>{editingContact ? 'Editar Contato' : 'Novo Contato'}</DialogTitle>
+          </DialogHeader>
+          <ContactForm 
+            onSubmit={handleFormSubmit}
+            onCancel={closeModal}
+            isLoading={isSubmitting}
+            initialData={editingContact || {}}
+          />
+        </DialogContent>
+      </Dialog>
 
       <Card>
         <CardHeader>
@@ -152,12 +165,12 @@ export function ContactsPage() {
                     <TableCell>{contact.email}</TableCell>
                     <TableCell>{contact.phone}</TableCell>
                     <TableCell>
-                      <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-green-500/10 text-green-500 hover:bg-green-500/20">
+                      <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold">
                         {contact.status}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon">
+                      <Button variant="ghost" size="icon" onClick={() => openEditModal(contact)}>
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button variant="ghost" size="icon" className="text-destructive">

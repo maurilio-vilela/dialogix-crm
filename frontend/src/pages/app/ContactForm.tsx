@@ -4,6 +4,7 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useEffect } from 'react';
 
 const contactSchema = z.object({
   name: z.string().min(3, 'O nome deve ter no mínimo 3 caracteres'),
@@ -12,22 +13,29 @@ const contactSchema = z.object({
   company: z.string().optional(),
 });
 
-type ContactFormData = z.infer<typeof contactSchema>;
+export type ContactFormData = z.infer<typeof contactSchema>;
 
 interface ContactFormProps {
   onSubmit: (data: ContactFormData) => void;
   onCancel: () => void;
   isLoading: boolean;
+  initialData?: Partial<ContactFormData>;
 }
 
-export function ContactForm({ onSubmit, onCancel, isLoading }: ContactFormProps) {
+export function ContactForm({ onSubmit, onCancel, isLoading, initialData }: ContactFormProps) {
   const {
     register,
     handleSubmit,
     formState: { errors },
+    reset,
   } = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
+    defaultValues: initialData || {},
   });
+
+  useEffect(() => {
+    reset(initialData || {});
+  }, [initialData, reset]);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 py-4">
