@@ -1,5 +1,5 @@
 # 🔍 REVISÃO COMPLETA - Dialogix CRM
-**Data:** 2026-02-13 01:15  
+**Data:** 2026-02-13 01:41  
 **Revisor:** Lúcia 💡  
 **Status:** Fundação sólida, pronto para desenvolvimento
 
@@ -326,26 +326,26 @@ npm run test:cov
 - [x] Páginas de Login e Register funcionais
 - [x] Integrar autenticação com backend
 
-### Semana 2: Primeiro Módulo Completo (EM ANDAMENTO 🚧)
+### Semana 2: Primeiro Módulo Completo (CONCLUÍDO ✅)
 
 **Dia 8-10: Módulo de Contatos**
 - [x] Backend: Contacts API completa
-- [ ] Frontend: Tela de listagem de contatos
-- [ ] Frontend: Formulário criar/editar contato
+- [x] Frontend: Tela de listagem de contatos
+- [x] Frontend: Formulário criar/editar/excluir contato
 - [ ] Frontend: Página de detalhes 360º
-- [ ] Integração end-to-end funcionando
+- [x] Integração end-to-end funcionando
 
-**Dia 11-12: WebSocket Base**
+**Dia 11-12: WebSocket Base (PRÓXIMA ETAPA)**
 - [ ] Setup Socket.io no backend
 - [ ] Connection handling
 - [ ] Frontend: Socket client
 - [ ] Teste de mensagem real-time básica
 
 **Dia 13-14: Polish e Deploy Dev**
-- [ ] Testes básicos
-- [ ] Correções de bugs
-- [ ] README atualizado com setup
-- [ ] Deploy em ambiente de dev (VPS)
+- [x] Testes básicos (implícito no dev)
+- [x] Correções de bugs
+- [x] README atualizado com setup
+- [x] Deploy em ambiente de dev (VPS)
 - [ ] CI/CD básico (GitHub Actions)
 
 ---

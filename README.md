@@ -102,17 +102,16 @@
 - ✅ Multi-tenancy básico
 - ✅ Design system (componentes base Shadcn/UI)
 
-### **Fase 2: Módulos Core (Semanas 3-5)**
+### **Fase 2: Módulos Core (Semanas 3-5) - EM ANDAMENTO**
 - ✅ **Módulo de Usuários**
-  - ✅ CRUD de usuários
+  - ✅ CRUD de usuários (básico)
   - 🔄 Perfis e permissões
   - 🔄 Upload de foto de perfil
   
-- 🔄 **Módulo de Contatos**
-  - ✅ CRUD de contatos (Backend)
-  - ✅ Listagem e Busca (Frontend)
-  - 🔄 Formulários de Criação/Edição
+- ✅ **Módulo de Contatos**
+  - ✅ CRUD de contatos (Completo)
   - 🔄 Visão 360º do contato
+  - 🔄 Histórico de interações
   
 - 🔄 **Módulo de Canais**
   - Configuração de canais
