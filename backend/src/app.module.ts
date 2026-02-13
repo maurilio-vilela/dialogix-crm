@@ -15,7 +15,11 @@ import { UsersModule } from './modules/users/users.module';
     }),
 
     // TypeORM
-    TypeOrmModule.forRoot(dataSourceOptions),
+    TypeOrmModule.forRoot({
+      ...dataSourceOptions,
+      entities: [], // Deixa o autoLoadEntities gerenciar
+      autoLoadEntities: true,
+    }),
 
     // Application Modules
     AuthModule,
