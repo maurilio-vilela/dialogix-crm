@@ -9,5 +9,12 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    rollupOptions: {
+      output: {
+        entryFileNames: `assets/[name].${Date.now()}.js`,
+        chunkFileNames: `assets/[name].${Date.now()}.js`,
+        assetFileNames: `assets/[name].${Date.now()}.[ext]`
+      }
+    }
   },
 })
