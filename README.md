@@ -100,18 +100,19 @@
 - ✅ Criar modelagem completa do banco
 - ✅ Sistema de autenticação (JWT)
 - ✅ Multi-tenancy básico
-- ✅ Design system (componentes base)
+- ✅ Design system (componentes base Shadcn/UI)
 
 ### **Fase 2: Módulos Core (Semanas 3-5)**
-- 🔄 **Módulo de Usuários**
-  - CRUD de usuários
-  - Perfis e permissões
-  - Upload de foto de perfil
+- ✅ **Módulo de Usuários**
+  - ✅ CRUD de usuários
+  - 🔄 Perfis e permissões
+  - 🔄 Upload de foto de perfil
   
 - 🔄 **Módulo de Contatos**
-  - CRUD de contatos
-  - Visão 360º do contato
-  - Histórico de interações
+  - ✅ CRUD de contatos (Backend)
+  - ✅ Listagem e Busca (Frontend)
+  - 🔄 Formulários de Criação/Edição
+  - 🔄 Visão 360º do contato
   
 - 🔄 **Módulo de Canais**
   - Configuração de canais
