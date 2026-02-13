@@ -49,6 +49,8 @@ import { ChatModule } from './modules/chat/chat.module';
     UsersModule,
     ContactsModule,
     ChatModule,
+    ConversationsModule,
+    MessagesModule,
   ],
   controllers: [HealthController],
   providers: [
