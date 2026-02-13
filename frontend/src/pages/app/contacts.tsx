@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,7 +31,7 @@ import {
 import { ContactForm, ContactFormData } from './contacts/components/ContactForm';
 import api from '@/lib/axios';
 import { toast } from 'react-hot-toast';
-import { Plus, Search, Trash2, Edit } from 'lucide-react';
+import { Plus, Search, Trash2, Edit, Eye } from 'lucide-react';
 
 interface Contact {
   id: string;
@@ -42,6 +43,7 @@ interface Contact {
 }
 
 export function ContactsPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [modalState, setModalState] = useState<{ type: 'create' | 'edit' | 'delete' | null, data?: Contact }>({ type: null });
@@ -214,10 +216,13 @@ export function ContactsPage() {
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" onClick={() => setModalState({ type: 'edit', data: contact })}>
+                          <Button variant="ghost" size="icon" onClick={() => navigate(`/contacts/${contact.id}`)} title="Ver detalhes">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => setModalState({ type: 'edit', data: contact })} title="Editar">
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setModalState({ type: 'delete', data: contact })}>
+                          <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setModalState({ type: 'delete', data: contact })} title="Excluir">
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </TableCell>
