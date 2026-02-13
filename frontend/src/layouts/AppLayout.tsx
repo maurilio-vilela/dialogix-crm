@@ -15,6 +15,7 @@ export function AppLayout() {
         <nav className="mt-8">
           <ul>
             <li><a href="/" className="block py-2">Dashboard</a></li>
+            <li><a href="/atendimento" className="block py-2">Atendimento</a></li>
             <li><a href="/contacts" className="block py-2">Contatos</a></li>
             <li><a href="/chat-test" className="block py-2 text-green-400">🧪 Teste WebSocket</a></li>
           </ul>

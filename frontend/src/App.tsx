@@ -7,6 +7,7 @@ import { ContactsPage } from './pages/app/contacts';
 import { ContactDetailsPage } from './pages/app/contacts/contact-details';
 import { DashboardPage } from './pages/app/dashboard';
 import { ChatTestPage } from './pages/app/chat-test';
+import { AttendancePage } from './pages/app/attendance';
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
             <Route path="/" element={<DashboardPage />} />
             <Route path="/contacts" element={<ContactsPage />} />
             <Route path="/contacts/:id" element={<ContactDetailsPage />} />
+            <Route path="/atendimento" element={<AttendancePage />} />
             <Route path="/chat-test" element={<ChatTestPage />} />
           </Route>
         </Routes>
