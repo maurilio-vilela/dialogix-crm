@@ -44,10 +44,7 @@ export function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [modalState, setModalState] = useState<{ type: 'create' | 'edit' | 'delete' | null, data?: Contact }>({ type: null });
 
   const fetchContacts = async () => {
     setLoading(true);
@@ -55,7 +52,6 @@ export function ContactsPage() {
       const response = await api.get('/contacts');
       setContacts(response.data);
     } catch (error) {
-      console.error(error);
       toast.error('Erro ao carregar contatos');
     } finally {
       setLoading(false);
@@ -67,62 +63,34 @@ export function ContactsPage() {
   }, []);
 
   const handleFormSubmit = async (data: ContactFormData) => {
-    setIsSubmitting(true);
-    try {
-      if (selectedContact) { // Modo Edição
-        await api.patch(`/contacts/${selectedContact.id}`, data);
-        toast.success('Contato atualizado com sucesso!');
-      } else { // Modo Criação
-        await api.post('/contacts', data);
-        toast.success('Contato criado com sucesso!');
-      }
-      closeFormModal();
-      fetchContacts();
-    } catch (error) {
-      console.error(error);
-      toast.error('Erro ao salvar contato.');
-    } finally {
-      setIsSubmitting(false);
-    }
+    const isEditing = modalState.type === 'edit';
+    const promise = isEditing
+      ? api.patch(`/contacts/${modalState.data!.id}`, data)
+      : api.post('/contacts', data);
+
+    toast.promise(promise, {
+      loading: 'Salvando...',
+      success: () => {
+        fetchContacts();
+        setModalState({ type: null });
+        return `Contato ${isEditing ? 'atualizado' : 'criado'} com sucesso!`;
+      },
+      error: `Erro ao salvar contato.`,
+    });
   };
 
   const handleDeleteContact = async () => {
-    if (!selectedContact) return;
-
-    try {
-      await api.delete(`/contacts/${selectedContact.id}`);
-      toast.success('Contato excluído com sucesso!');
-      closeDeleteModal();
-      fetchContacts();
-    } catch (error) {
-      console.error(error);
-      toast.error('Erro ao excluir contato.');
-    }
-  };
-  
-  const openCreateModal = () => {
-    setSelectedContact(null);
-    setIsFormModalOpen(true);
-  };
-  
-  const openEditModal = (contact: Contact) => {
-    setSelectedContact(contact);
-    setIsFormModalOpen(true);
-  };
-  
-  const openDeleteModal = (contact: Contact) => {
-    setSelectedContact(contact);
-    setIsDeleteModalOpen(true);
-  }
-
-  const closeFormModal = () => {
-    setIsFormModalOpen(false);
-    setSelectedContact(null);
-  };
-  
-  const closeDeleteModal = () => {
-    setIsDeleteModalOpen(false);
-    setSelectedContact(null);
+    if (modalState.type !== 'delete' || !modalState.data) return;
+    
+    toast.promise(api.delete(`/contacts/${modalState.data.id}`), {
+      loading: 'Excluindo...',
+      success: () => {
+        fetchContacts();
+        setModalState({ type: null });
+        return 'Contato excluído com sucesso!';
+      },
+      error: 'Erro ao excluir contato.',
+    });
   };
 
   const filteredContacts = contacts.filter(contact =>
@@ -132,44 +100,42 @@ export function ContactsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight font-heading">Contatos</h2>
           <p className="text-muted-foreground">
             Gerencie seus clientes e leads em um só lugar.
           </p>
         </div>
-        <Button onClick={openCreateModal}>
+        <Button onClick={() => setModalState({ type: 'create' })} className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" /> Novo Contato
         </Button>
       </div>
-
-      {/* Modal de Criar/Editar */}
-      <Dialog open={isFormModalOpen} onOpenChange={setIsFormModalOpen}>
-        <DialogContent className="sm:max-w-[425px]" onInteractOutside={closeFormModal}>
+      
+      {/* Modals */}
+      <Dialog open={modalState.type === 'create' || modalState.type === 'edit'} onOpenChange={() => setModalState({ type: null })}>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>{selectedContact ? 'Editar Contato' : 'Novo Contato'}</DialogTitle>
+            <DialogTitle>{modalState.type === 'edit' ? 'Editar Contato' : 'Novo Contato'}</DialogTitle>
           </DialogHeader>
           <ContactForm 
             onSubmit={handleFormSubmit}
-            onCancel={closeFormModal}
-            isLoading={isSubmitting}
-            initialData={selectedContact || {}}
+            onCancel={() => setModalState({ type: null })}
+            isLoading={false} // Gerenciado pelo toast.promise
+            initialData={modalState.type === 'edit' ? modalState.data : {}}
           />
         </DialogContent>
       </Dialog>
-
-      {/* Modal de Excluir */}
-      <AlertDialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+      <AlertDialog open={modalState.type === 'delete'} onOpenChange={() => setModalState({ type: null })}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. O contato será movido para a lixeira.
+              Esta ação não pode ser desfeita. O contato "{modalState.data?.name}" será movido para a lixeira.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={closeDeleteModal}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteContact} className="bg-destructive hover:bg-destructive/90">
               Excluir
             </AlertDialogAction>
@@ -179,9 +145,9 @@ export function ContactsPage() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <CardTitle>Listagem</CardTitle>
-            <div className="relative w-72">
+            <div className="relative w-full sm:w-72">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar por nome ou email..."
@@ -195,44 +161,50 @@ export function ContactsPage() {
         <CardContent>
           {loading ? (
             <div className="text-center py-10">Carregando...</div>
-          ) : filteredContacts.length === 0 ? (
-            <div className="text-center py-10 text-muted-foreground">
-              Nenhum contato encontrado. Crie um novo!
-            </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredContacts.map((contact) => (
-                  <TableRow key={contact.id}>
-                    <TableCell className="font-medium">{contact.name}</TableCell>
-                    <TableCell>{contact.email}</TableCell>
-                    <TableCell>{contact.phone}</TableCell>
-                    <TableCell>
-                      <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold">
-                        {contact.status}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => openEditModal(contact)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="text-destructive" onClick={() => openDeleteModal(contact)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
+            <div className="w-full overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead className="hidden md:table-cell">Email</TableHead>
+                    <TableHead className="hidden lg:table-cell">Telefone</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredContacts.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                        Nenhum contato encontrado.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredContacts.map((contact) => (
+                      <TableRow key={contact.id}>
+                        <TableCell className="font-medium">{contact.name}</TableCell>
+                        <TableCell className="hidden md:table-cell">{contact.email}</TableCell>
+                        <TableCell className="hidden lg:table-cell">{contact.phone}</TableCell>
+                        <TableCell>
+                          <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold">
+                            {contact.status}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" onClick={() => setModalState({ type: 'edit', data: contact })}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setModalState({ type: 'delete', data: contact })}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
