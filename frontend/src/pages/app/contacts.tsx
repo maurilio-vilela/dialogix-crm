@@ -16,6 +16,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ContactForm, ContactFormData } from './ContactForm';
 import api from '@/lib/axios';
 import { toast } from 'react-hot-toast';
@@ -34,9 +44,10 @@ export function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
 
   const fetchContacts = async () => {
     setLoading(true);
@@ -58,16 +69,14 @@ export function ContactsPage() {
   const handleFormSubmit = async (data: ContactFormData) => {
     setIsSubmitting(true);
     try {
-      if (editingContact) {
-        // Update
-        await api.patch(`/contacts/${editingContact.id}`, data);
+      if (selectedContact) { // Modo Edição
+        await api.patch(`/contacts/${selectedContact.id}`, data);
         toast.success('Contato atualizado com sucesso!');
-      } else {
-        // Create
+      } else { // Modo Criação
         await api.post('/contacts', data);
         toast.success('Contato criado com sucesso!');
       }
-      closeModal();
+      closeFormModal();
       fetchContacts();
     } catch (error) {
       console.error(error);
@@ -76,21 +85,45 @@ export function ContactsPage() {
       setIsSubmitting(false);
     }
   };
+
+  const handleDeleteContact = async () => {
+    if (!selectedContact) return;
+
+    try {
+      await api.delete(`/contacts/${selectedContact.id}`);
+      toast.success('Contato excluído com sucesso!');
+      closeDeleteModal();
+      fetchContacts();
+    } catch (error) {
+      console.error(error);
+      toast.error('Erro ao excluir contato.');
+    }
+  };
   
   const openCreateModal = () => {
-    setEditingContact(null);
-    setIsModalOpen(true);
+    setSelectedContact(null);
+    setIsFormModalOpen(true);
   };
   
   const openEditModal = (contact: Contact) => {
-    setEditingContact(contact);
-    setIsModalOpen(true);
+    setSelectedContact(contact);
+    setIsFormModalOpen(true);
   };
   
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setEditingContact(null);
+  const openDeleteModal = (contact: Contact) => {
+    setSelectedContact(contact);
+    setIsDeleteModalOpen(true);
   }
+
+  const closeFormModal = () => {
+    setIsFormModalOpen(false);
+    setSelectedContact(null);
+  };
+  
+  const closeDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+    setSelectedContact(null);
+  };
 
   const filteredContacts = contacts.filter(contact =>
     contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -111,19 +144,38 @@ export function ContactsPage() {
         </Button>
       </div>
 
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[425px]" onInteractOutside={closeModal}>
+      {/* Modal de Criar/Editar */}
+      <Dialog open={isFormModalOpen} onOpenChange={setIsFormModalOpen}>
+        <DialogContent className="sm:max-w-[425px]" onInteractOutside={closeFormModal}>
           <DialogHeader>
-            <DialogTitle>{editingContact ? 'Editar Contato' : 'Novo Contato'}</DialogTitle>
+            <DialogTitle>{selectedContact ? 'Editar Contato' : 'Novo Contato'}</DialogTitle>
           </DialogHeader>
           <ContactForm 
             onSubmit={handleFormSubmit}
-            onCancel={closeModal}
+            onCancel={closeFormModal}
             isLoading={isSubmitting}
-            initialData={editingContact || {}}
+            initialData={selectedContact || {}}
           />
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Excluir */}
+      <AlertDialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O contato será movido para a lixeira.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={closeDeleteModal}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteContact} className="bg-destructive hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Card>
         <CardHeader>
@@ -173,7 +225,7 @@ export function ContactsPage() {
                       <Button variant="ghost" size="icon" onClick={() => openEditModal(contact)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="text-destructive">
+                      <Button variant="ghost" size="icon" className="text-destructive" onClick={() => openDeleteModal(contact)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </TableCell>
