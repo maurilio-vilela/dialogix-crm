@@ -1,0 +1,58 @@
+#!/bin/bash
+
+# Script de Deploy - Dialogix CRM
+# Uso: ./deploy.sh
+
+set -e  # Para na primeira falha
+
+echo "🚀 Iniciando deploy do Dialogix CRM..."
+echo ""
+
+# 1. Git Pull
+echo "📥 Atualizando código do repositório..."
+git pull origin main
+echo "✅ Código atualizado!"
+echo ""
+
+# 2. Parar containers
+echo "🛑 Parando containers..."
+docker compose down
+echo "✅ Containers parados!"
+echo ""
+
+# 3. Rebuild (sem cache para garantir atualização)
+echo "🔨 Reconstruindo imagens Docker..."
+docker compose build --no-cache backend frontend
+echo "✅ Imagens reconstruídas!"
+echo ""
+
+# 4. Subir containers
+echo "🚀 Iniciando containers..."
+docker compose up -d
+echo "✅ Containers iniciados!"
+echo ""
+
+# 5. Aguardar inicialização
+echo "⏳ Aguardando inicialização dos serviços..."
+sleep 5
+echo ""
+
+# 6. Status
+echo "📊 Status dos containers:"
+docker compose ps
+echo ""
+
+# 7. Logs (últimas 20 linhas)
+echo "📋 Últimos logs:"
+docker compose logs --tail=20
+echo ""
+
+echo "✅ Deploy concluído com sucesso!"
+echo ""
+echo "🌐 Acessar:"
+echo "   Frontend: http://localhost:3000"
+echo "   Backend: http://localhost:4000"
+echo "   API Docs: http://localhost:4000/api/docs"
+echo ""
+echo "📝 Para ver logs em tempo real:"
+echo "   docker compose logs -f"
