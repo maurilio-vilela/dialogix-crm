@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,7 +27,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ContactForm, ContactFormData } from './ContactForm';
+import { ContactForm, ContactFormData } from './contacts/components/ContactForm';
 import api from '@/lib/axios';
 import { toast } from 'react-hot-toast';
 import { Plus, Search, Trash2, Edit } from 'lucide-react';
@@ -41,62 +42,79 @@ interface Contact {
 }
 
 export function ContactsPage() {
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [modalState, setModalState] = useState<{ type: 'create' | 'edit' | 'delete' | null, data?: Contact }>({ type: null });
 
-  const fetchContacts = async () => {
-    setLoading(true);
-    try {
+  // Query: buscar contatos
+  const { data: contacts = [], isLoading } = useQuery<Contact[]>({
+    queryKey: ['contacts'],
+    queryFn: async () => {
       const response = await api.get('/contacts');
-      setContacts(response.data);
-    } catch (error) {
-      toast.error('Erro ao carregar contatos');
-    } finally {
-      setLoading(false);
+      return response.data;
+    },
+  });
+
+  // Mutation: criar contato
+  const createMutation = useMutation({
+    mutationFn: (data: ContactFormData) => api.post('/contacts', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+      setModalState({ type: null });
+      toast.success('Contato criado com sucesso!');
+    },
+    onError: () => {
+      toast.error('Erro ao criar contato.');
+    },
+  });
+
+  // Mutation: atualizar contato
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: ContactFormData }) =>
+      api.patch(`/contacts/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+      setModalState({ type: null });
+      toast.success('Contato atualizado com sucesso!');
+    },
+    onError: () => {
+      toast.error('Erro ao atualizar contato.');
+    },
+  });
+
+  // Mutation: excluir contato
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/contacts/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+      setModalState({ type: null });
+      toast.success('Contato excluído com sucesso!');
+    },
+    onError: () => {
+      toast.error('Erro ao excluir contato.');
+    },
+  });
+
+  const handleFormSubmit = (data: ContactFormData) => {
+    if (modalState.type === 'edit' && modalState.data) {
+      updateMutation.mutate({ id: modalState.data.id, data });
+    } else {
+      createMutation.mutate(data);
     }
   };
 
-  useEffect(() => {
-    fetchContacts();
-  }, []);
-
-  const handleFormSubmit = async (data: ContactFormData) => {
-    const isEditing = modalState.type === 'edit';
-    const promise = isEditing
-      ? api.patch(`/contacts/${modalState.data!.id}`, data)
-      : api.post('/contacts', data);
-
-    toast.promise(promise, {
-      loading: 'Salvando...',
-      success: () => {
-        fetchContacts();
-        setModalState({ type: null });
-        return `Contato ${isEditing ? 'atualizado' : 'criado'} com sucesso!`;
-      },
-      error: `Erro ao salvar contato.`,
-    });
-  };
-
-  const handleDeleteContact = async () => {
-    if (modalState.type !== 'delete' || !modalState.data) return;
-    
-    toast.promise(api.delete(`/contacts/${modalState.data.id}`), {
-      loading: 'Excluindo...',
-      success: () => {
-        fetchContacts();
-        setModalState({ type: null });
-        return 'Contato excluído com sucesso!';
-      },
-      error: 'Erro ao excluir contato.',
-    });
+  const handleDeleteContact = () => {
+    if (modalState.type === 'delete' && modalState.data) {
+      deleteMutation.mutate(modalState.data.id);
+    }
   };
 
   const filteredContacts = contacts.filter(contact =>
     contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     contact.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const isSubmitting = createMutation.isPending || updateMutation.isPending;
 
   return (
     <div className="space-y-6">
@@ -121,7 +139,7 @@ export function ContactsPage() {
           <ContactForm 
             onSubmit={handleFormSubmit}
             onCancel={() => setModalState({ type: null })}
-            isLoading={false} // Gerenciado pelo toast.promise
+            isLoading={isSubmitting}
             initialData={modalState.type === 'edit' ? modalState.data : {}}
           />
         </DialogContent>
@@ -136,8 +154,12 @@ export function ContactsPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteContact} className="bg-destructive hover:bg-destructive/90">
-              Excluir
+            <AlertDialogAction 
+              onClick={handleDeleteContact} 
+              className="bg-destructive hover:bg-destructive/90"
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? 'Excluindo...' : 'Excluir'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -159,7 +181,7 @@ export function ContactsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {isLoading ? (
             <div className="text-center py-10">Carregando...</div>
           ) : (
             <div className="w-full overflow-auto">
