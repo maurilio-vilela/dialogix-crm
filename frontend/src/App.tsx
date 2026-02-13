@@ -4,6 +4,7 @@ import { LoginPage } from './pages/auth/login';
 import { AuthLayout } from './layouts/AuthLayout';
 import { AppLayout } from './layouts/AppLayout';
 import { ContactsPage } from './pages/app/contacts';
+import { DashboardPage } from './pages/app/dashboard';
 
 function App() {
   return (
@@ -15,7 +16,7 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
           </Route>
           <Route element={<AppLayout />}>
-            <Route path="/" element={<h1>Dashboard</h1>} />
+            <Route path="/" element={<DashboardPage />} />
             <Route path="/contacts" element={<ContactsPage />} />
           </Route>
         </Routes>
@@ -25,4 +26,3 @@ function App() {
 }
 
 export default App;
-
