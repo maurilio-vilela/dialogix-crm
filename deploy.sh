@@ -1,13 +1,11 @@
 #!/bin/bash
 
-# Script de Deploy - APENAS APLICAÇÃO (backend/frontend)
-# Uso: ./deploy-app-only.sh
-# Este script NÃO irá parar/reiniciar a infraestrutura (Traefik, DB, Redis).
+# Script de Deploy - Dialogix CRM
+# Uso: ./deploy.sh
 
-set -e # Para na primeira falha
+set -e  # Para na primeira falha
 
-echo "🚀 Iniciando deploy APENAS da aplicação Dialogix CRM..."
-echo "⚠️  Este script NÃO irá parar/reiniciar a infraestrutura (Traefik, DB, Redis)."
+echo "🚀 Iniciando deploy do Dialogix CRM..."
 echo ""
 
 # 1. Git Pull
@@ -16,24 +14,21 @@ git pull origin main
 echo "✅ Código atualizado!"
 echo ""
 
-# 2. Rebuild (APENAS backend e frontend)
-echo "🔨 Reconstruindo imagens Docker para backend e frontend..."
+# 2. Rebuild (sem cache para garantir atualização)
+echo "🔨 Reconstruindo imagens Docker..."
 docker compose build --no-cache backend frontend
-echo "✅ Imagens da aplicação reconstruídas!"
+echo "✅ Imagens reconstruídas!"
 echo ""
 
-# 3. Subir containers (APENAS backend e frontend)
-# --no-deps: Não inicia serviços linkados (postgres, redis)
-# --force-recreate: Força a recriação dos containers com a nova imagem
-echo "🚀 Reiniciando containers da aplicação (backend e frontend)..."
+# 3. Subir containers
+echo "🚀 Iniciando containers..."
 docker compose up -d --force-recreate --no-deps backend frontend
-echo "✅ Containers da aplicação reiniciados!"
+echo "✅ Containers iniciados!"
 echo ""
 
-# 4. Limpar imagens antigas (dangling)
-echo "🧹 Limpando imagens Docker antigas..."
-docker image prune -f
-echo "✅ Limpeza concluída!"
+# 4. Aguardar inicialização
+echo "⏳ Aguardando inicialização dos serviços..."
+sleep 10
 echo ""
 
 # 5. Status
@@ -41,5 +36,26 @@ echo "📊 Status dos containers:"
 docker compose ps
 echo ""
 
-echo "✅ Deploy da aplicação concluído com sucesso!"
-echo "A aplicação foi atualizada e está pronta para testes."
+# 6. Aguardar inicialização novamente (garantir que tudo está rodando)
+echo "⏳ Garantindo que serviços estão rodando..."
+sleep 5
+echo ""
+
+# 7. Logs (últimas 20 linhas)
+echo "📋 Últimos logs:"
+docker compose logs --tail=20
+echo ""
+
+echo "✅ Deploy concluído com sucesso!"
+echo ""
+echo "🌐 Acessar (Produção com Domínios):"
+echo "   Frontend: https://dev.dialogix.com.br"
+echo "   Backend API: https://api-dev.dialogix.com.br"
+echo "   API Docs: https://api-dev.dialogix.com.br/api/docs"
+echo ""
+echo "📝 Para ver logs em tempo real:"
+echo "   docker compose logs -f"
+echo ""
+echo "💡 Nota: Se estiver usando docker-compose.dev.yml:"
+echo "   Frontend: http://localhost:5173"
+echo "   Backend: http://localhost:3000"
