@@ -41,9 +41,9 @@ export function LoginPage() {
     setIsLoading(true);
     try {
       const response = await api.post('/auth/login', data);
-      const { token, user } = response.data;
+      const { access_token, user } = response.data;
 
-      setAuth(token, user);
+      setAuth(access_token, user);
       toast.success(`Bem-vindo, ${user.name}!`);
       navigate('/');
     } catch (error: any) {
