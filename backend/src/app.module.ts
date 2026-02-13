@@ -3,6 +3,8 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { dataSourceOptions } from './database/data-source';
 import { HealthController } from './health.controller';
+import { AuthModule } from './modules/auth/auth.module';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -14,6 +16,10 @@ import { HealthController } from './health.controller';
 
     // TypeORM
     TypeOrmModule.forRoot(dataSourceOptions),
+
+    // Application Modules
+    AuthModule,
+    UsersModule,
   ],
   controllers: [HealthController],
   providers: [],
