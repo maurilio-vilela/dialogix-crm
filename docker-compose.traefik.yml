@@ -133,3 +133,5 @@ secrets:
     external: true
   postgres_password_secret:
     external: true
+  jwt_secret:
+    external: true
