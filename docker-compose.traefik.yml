@@ -92,6 +92,8 @@ services:
     image: dialogix-frontend:latest
     container_name: dialogix-frontend-dev
     restart: unless-stopped
+    environment:
+      VITE_API_URL: https://api-dev.dialogix.com.br
     depends_on:
       - backend
     labels:

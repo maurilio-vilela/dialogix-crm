@@ -13,10 +13,36 @@ import { AuthController } from './auth.controller';
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
-        signOptions: { expiresIn: configService.get<string>('JWT_EXPIRATION') || '7d' },
-      }),
+      useFactory: async (configService: ConfigService) => {
+        // Tenta ler do arquivo JWT_SECRET_FILE primeiro (Docker Swarm secrets)
+        const secretFile = process.env.JWT_SECRET_FILE || '/run/secrets/jwt_secret';
+        const fs = require('fs');
+        let secret = '';
+
+        try {
+          if (fs.existsSync(secretFile)) {
+            secret = fs.readFileSync(secretFile, 'utf8').trim();
+            console.log(`[AuthModule] Secret lido do arquivo: ${secretFile}`);
+          }
+        } catch (error) {
+          console.error('[AuthModule] Erro ao ler arquivo de secret:', error);
+        }
+
+        // Fallback para variável de ambiente
+        if (!secret) {
+          secret = configService.get<string>('JWT_SECRET');
+          console.log('[AuthModule] Usando JWT_SECRET do environment');
+        }
+
+        if (!secret) {
+          throw new Error('JWT_SECRET não encontrado (arquivo ou environment)');
+        }
+
+        return {
+          secret,
+          signOptions: { expiresIn: configService.get<string>('JWT_EXPIRATION') || '7d' },
+        };
+      },
       inject: [ConfigService],
     }),
   ],
