@@ -7,6 +7,8 @@ services:
   # PostgreSQL 15 - Banco de Dados Principal
   postgres:
     image: postgres:15-alpine
+    container_name: dialogix-postgres-dev
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${DATABASE_NAME:-dialogix_crm_dev}
       POSTGRES_USER: ${DATABASE_USER:-dialogix}
@@ -25,6 +27,8 @@ services:
   # Redis 7 - Cache e Sessões
   redis:
     image: redis:7-alpine
+    container_name: dialogix-redis-dev
+    restart: unless-stopped
     command: redis-server --appendonly yes --requirepass /run/secrets/redis_password_secret
     volumes:
       - redis_data:/data
@@ -39,7 +43,12 @@ services:
 
   # Backend API (NestJS)
   backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     image: dialogix-backend:latest
+    container_name: dialogix-backend-dev
+    restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 3000
@@ -56,6 +65,9 @@ services:
       FRONTEND_URL: ${FRONTEND_URL}
     volumes:
       - backend_uploads:/app/uploads
+    depends_on:
+      - postgres
+      - redis
     networks:
       - traefik-public
       - dialogix-internal
@@ -82,9 +94,16 @@ services:
 
   # Frontend (React + Vite)
   frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     image: dialogix-frontend:latest
+    container_name: dialogix-frontend-dev
+    restart: unless-stopped
     environment:
       VITE_API_URL: https://api-dev.dialogix.com.br
+    depends_on:
+      - backend
     networks:
       - traefik-public
     deploy:
