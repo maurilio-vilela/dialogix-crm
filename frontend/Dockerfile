@@ -16,6 +16,8 @@ FROM nginx:alpine
 
 # Copiar build do estágio anterior
 COPY --chown=nginx:nginx --from=builder /app/dist /usr/share/nginx/html
+# Copiar configuração do Nginx
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expor porta
 EXPOSE 80
