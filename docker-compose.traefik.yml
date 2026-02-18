@@ -87,6 +87,12 @@ services:
         - "traefik.http.middlewares.dialogix-cors.headers.accesscontrolallowheaders=*"
         - "traefik.http.routers.dialogix-api-dev.middlewares=dialogix-cors"
 
+        # Roteador para WebSocket (WSS) no /chat
+        - "traefik.http.routers.dialogix-backend-wss.rule=Host(`api-dev.dialogix.com.br`) && PathPrefix(`/socket.io`)"
+        - "traefik.http.routers.dialogix-backend-wss.entrypoints=websecure"
+        - "traefik.http.routers.dialogix-backend-wss.service=dialogix-api-dev"
+        - "traefik.http.routers.dialogix-backend-wss.tls.certresolver=myresolver"
+
   # Frontend (React + Vite)
   frontend:
     build:
