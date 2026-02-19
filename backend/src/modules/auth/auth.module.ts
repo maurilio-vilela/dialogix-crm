@@ -38,6 +38,15 @@ import { AuthController } from './auth.controller';
           throw new Error('JWT_SECRET não encontrado (arquivo ou environment)');
         }
 
+        // Log temporário de diagnóstico (hash do secret, sem expor valor)
+        try {
+          const { createHash } = require('crypto');
+          const hash = createHash('sha256').update(secret).digest('hex');
+          console.log('[AuthModule] JWT_SECRET hash (sha256):', hash.slice(0, 12));
+        } catch (e) {
+          console.log('[AuthModule] Falha ao gerar hash do JWT_SECRET');
+        }
+
         return {
           secret,
           signOptions: { expiresIn: configService.get<string>('JWT_EXPIRATION') || '7d' },
