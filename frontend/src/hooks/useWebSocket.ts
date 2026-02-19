@@ -19,11 +19,21 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   const { autoConnect = true, onConnect, onDisconnect, onError } = options;
   const { token } = useAuthStore();
   const socketRef = useRef<Socket | null>(null);
+  const onConnectRef = useRef(onConnect);
+  const onDisconnectRef = useRef(onDisconnect);
+  const onErrorRef = useRef(onError);
   const [state, setState] = useState<WebSocketState>({
     socket: null,
     isConnected: false,
     error: null,
   });
+
+  // manter callbacks atualizados sem reabrir conexão
+  useEffect(() => {
+    onConnectRef.current = onConnect;
+    onDisconnectRef.current = onDisconnect;
+    onErrorRef.current = onError;
+  }, [onConnect, onDisconnect, onError]);
 
   useEffect(() => {
     if (!token || !autoConnect) return;
@@ -46,25 +56,25 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     socket.on('connect', () => {
       console.log('✅ WebSocket conectado:', socket.id);
       setState((prev) => ({ ...prev, isConnected: true, error: null, socket }));
-      onConnect?.();
+      onConnectRef.current?.();
     });
 
     socket.on('disconnect', (reason) => {
       console.log('❌ WebSocket desconectado:', reason);
       setState((prev) => ({ ...prev, isConnected: false, socket }));
-      onDisconnect?.();
+      onDisconnectRef.current?.();
     });
 
     socket.on('connect_error', (error) => {
       console.error('❌ Erro de conexão WebSocket:', error.message);
       setState((prev) => ({ ...prev, error, socket }));
-      onError?.(error);
+      onErrorRef.current?.(error);
     });
 
     socket.on('error', (error) => {
       console.error('❌ Erro WebSocket:', error);
       setState((prev) => ({ ...prev, error, socket }));
-      onError?.(error);
+      onErrorRef.current?.(error);
     });
 
     // Cleanup
@@ -73,7 +83,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [token, autoConnect, onConnect, onDisconnect, onError]);
+  }, [token, autoConnect]);
 
   // Método utilitário para enviar eventos
   const emit = (event: string, data?: any) => {
