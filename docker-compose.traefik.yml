@@ -98,6 +98,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: https://api-dev.dialogix.com.br
     image: dialogix-frontend:latest
     environment:
       VITE_API_URL: https://api-dev.dialogix.com.br

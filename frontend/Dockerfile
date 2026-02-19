@@ -9,6 +9,10 @@ RUN npm ci && npm cache clean --force
 
 COPY . .
 
+# Build-time env for Vite
+ARG VITE_API_URL
+ENV VITE_API_URL=${VITE_API_URL}
+
 RUN npm run build
 
 # Stage 2: Nginx para servir arquivos estáticos
