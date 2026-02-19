@@ -31,29 +31,26 @@ export class Conversation {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ name: 'tenant_id' })
   tenantId: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ name: 'contact_id', type: 'uuid', nullable: true })
   contactId: string;
 
   @ManyToOne(() => Contact, { nullable: true, onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'contactId' })
+  @JoinColumn({ name: 'contact_id' })
   contact: Contact;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ name: 'assigned_to', type: 'uuid', nullable: true })
   assignedUserId: string;
 
   @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'assignedUserId' })
+  @JoinColumn({ name: 'assigned_to' })
   assignedUser: User;
 
-  @Column({
-    type: 'enum',
-    enum: ConversationChannel,
-    default: ConversationChannel.WHATSAPP,
-  })
-  channel: ConversationChannel;
+  // No banco atual existe channel_id (UUID). Mantemos mapeado aqui.
+  @Column({ name: 'channel_id', type: 'uuid', nullable: true })
+  channel: string;
 
   @Column({
     type: 'enum',
@@ -62,20 +59,14 @@ export class Conversation {
   })
   status: ConversationStatus;
 
-  @Column({ type: 'varchar', nullable: true })
-  externalId: string; // ID da conversa no canal externo (WhatsApp, etc.)
-
-  @Column({ type: 'text', nullable: true })
+  @Column({ name: 'last_message', type: 'text', nullable: true })
   lastMessage: string;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ name: 'last_message_at', type: 'timestamp', nullable: true })
   lastMessageAt: Date;
 
-  @Column({ type: 'int', default: 0 })
+  @Column({ name: 'unread_count', type: 'int', default: 0 })
   unreadCount: number;
-
-  @Column({ type: 'jsonb', nullable: true })
-  metadata: Record<string, any>; // Dados extras do canal (número, nome do grupo, etc.)
 
   @OneToMany(() => Message, (message) => message.conversation)
   messages: Message[];
