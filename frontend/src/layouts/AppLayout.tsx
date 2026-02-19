@@ -1,4 +1,4 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/auth';
 
 export function AppLayout() {
@@ -14,10 +14,10 @@ export function AppLayout() {
         <h1 className="text-2xl font-bold">Dialogix</h1>
         <nav className="mt-8">
           <ul>
-            <li><a href="/" className="block py-2">Dashboard</a></li>
-            <li><a href="/atendimento" className="block py-2">Atendimento</a></li>
-            <li><a href="/contacts" className="block py-2">Contatos</a></li>
-            <li><a href="/chat-test" className="block py-2 text-green-400">🧪 Teste WebSocket</a></li>
+            <li><Link to="/" className="block py-2">Dashboard</Link></li>
+            <li><Link to="/atendimento" className="block py-2">Atendimento</Link></li>
+            <li><Link to="/contacts" className="block py-2">Contatos</Link></li>
+            <li><Link to="/chat-test" className="block py-2 text-green-400">🧪 Teste WebSocket</Link></li>
           </ul>
         </nav>
       </aside>
