@@ -40,7 +40,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       // Validar token
       const payload = await this.jwtService.verifyAsync(token);
-      const userId = payload.userId;
+      const userId = payload.userId || payload.sub;
       const tenantId = payload.tenantId;
 
       // Armazenar dados do usuário no socket
