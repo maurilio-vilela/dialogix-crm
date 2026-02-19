@@ -62,17 +62,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.server.to(`tenant:${tenantId}`).emit('user:online', { userId });
 
     } catch (error) {
-      // Log temporário de depuração (não expõe segredo):
-      const rawToken = client.handshake.auth.token || client.handshake.headers.authorization?.split(' ')[1];
-      const tokenPreview = rawToken ? `${rawToken.slice(0, 10)}...(${rawToken.length})` : 'N/A';
-      let decoded: any = null;
-      try {
-        decoded = rawToken ? this.jwtService.decode(rawToken) : null;
-      } catch (e) {
-        decoded = null;
-      }
       console.log('❌ Conexão rejeitada: token inválido', error?.message);
-      console.log('🧪 Debug JWT:', { tokenPreview, decoded });
       client.disconnect();
     }
   }
