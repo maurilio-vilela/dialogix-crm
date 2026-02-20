@@ -18,16 +18,22 @@ import {
 interface ApiConversation {
   id: string;
   status: string;
-  channel: string;
+  channel?: string | { id?: string; name?: string; type?: string };
+  contact_id?: string;
+  contactId?: string;
   contact?: {
     id: string;
     name: string;
     email?: string;
     phone?: string;
   };
-  unreadCount: number;
+  unreadCount?: number;
+  unread_count?: number;
   lastMessage?: string;
+  last_message?: { content?: string; created_at?: string };
   lastMessageAt?: string;
+  last_message_at?: string;
+  last_message_preview?: string;
 }
 
 interface Conversation {
@@ -47,15 +53,23 @@ interface Conversation {
 
 interface ApiMessage {
   id: string;
-  conversationId: string;
+  conversation_id?: string;
+  conversationId?: string;
+  sender_user?: {
+    id: string;
+    name: string;
+  };
   senderUser?: {
     id: string;
     name: string;
   };
   direction: 'inbound' | 'outbound';
-  type: string;
-  content: string;
-  createdAt: string;
+  content_type?: string;
+  type?: string;
+  content?: string;
+  body?: string;
+  created_at?: string;
+  createdAt?: string;
 }
 
 interface Message {
@@ -78,6 +92,41 @@ const quickReplies = [
   'Obrigado! Já retorno com a solução.',
 ];
 
+const normalizeConversation = (convo: ApiConversation): Conversation => {
+  const channelType =
+    typeof convo.channel === 'string'
+      ? convo.channel
+      : convo.channel?.type || convo.channel?.name || 'unknown';
+
+  return {
+    id: convo.id,
+    contact: convo.contact,
+    channel: channelType?.toString().toLowerCase() || 'unknown',
+    status: convo.status,
+    lastMessage:
+      convo.last_message?.content ||
+      convo.lastMessage ||
+      convo.last_message_preview ||
+      undefined,
+    lastMessageAt:
+      convo.last_message?.created_at ||
+      convo.last_message_at ||
+      convo.lastMessageAt ||
+      undefined,
+    unreadCount: convo.unread_count ?? convo.unreadCount ?? 0,
+  };
+};
+
+const normalizeMessage = (msg: ApiMessage): Message => ({
+  id: msg.id,
+  conversationId: msg.conversation_id || msg.conversationId || '',
+  senderUser: msg.sender_user || msg.senderUser,
+  direction: msg.direction,
+  type: msg.content_type || msg.type || 'text',
+  content: msg.content || msg.body || '',
+  createdAt: msg.created_at || msg.createdAt || new Date().toISOString(),
+});
+
 export function AttendancePage() {
   const queryClient = useQueryClient();
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -88,17 +137,9 @@ export function AttendancePage() {
   const { data: conversations = [], isLoading: loadingConversations } = useQuery<Conversation[]>({
     queryKey: ['conversations'],
     queryFn: async () => {
-      const response = await api.get<ApiConversation[]>('/conversations');
-      const data = response.data || [];
-      return data.map((convo) => ({
-        id: convo.id,
-        contact: convo.contact,
-        channel: convo.channel || 'unknown',
-        status: convo.status,
-        lastMessage: convo.lastMessage,
-        lastMessageAt: convo.lastMessageAt,
-        unreadCount: convo.unreadCount || 0,
-      }));
+      const response = await api.get('/conversations');
+      const payload = response.data?.data ?? response.data ?? [];
+      return Array.isArray(payload) ? payload.map(normalizeConversation) : [];
     },
     refetchInterval: 10000, // Atualiza a cada 10s (fallback se WebSocket falhar)
   });
@@ -108,17 +149,9 @@ export function AttendancePage() {
     queryKey: ['messages', activeConversationId],
     queryFn: async () => {
       if (!activeConversationId) return [];
-      const response = await api.get<ApiMessage[]>(`/messages/conversation/${activeConversationId}`);
-      const data = response.data || [];
-      return data.map((msg) => ({
-        id: msg.id,
-        conversationId: msg.conversationId,
-        senderUser: msg.senderUser,
-        direction: msg.direction,
-        type: msg.type,
-        content: msg.content,
-        createdAt: msg.createdAt,
-      }));
+      const response = await api.get(`/messages/conversation/${activeConversationId}`);
+      const payload = response.data?.data ?? response.data ?? [];
+      return Array.isArray(payload) ? payload.map(normalizeMessage) : [];
     },
     enabled: !!activeConversationId,
   });
@@ -149,32 +182,6 @@ export function AttendancePage() {
   const { isConnected, on, off } = useWebSocket({
     autoConnect: true,
   });
-
-  const normalizeMessage = (data: any): Message => {
-    if (data?.conversationId) {
-      return {
-        id: data.id,
-        conversationId: data.conversationId,
-        senderUser: data.senderUser,
-        direction: data.direction,
-        type: data.type,
-        content: data.content,
-        createdAt: data.createdAt,
-      };
-    }
-    if (data?.conversation_id) {
-      return {
-        id: data.id,
-        conversationId: data.conversation_id,
-        senderUser: data.sender_user,
-        direction: data.direction,
-        type: data.content_type,
-        content: data.content,
-        createdAt: data.created_at,
-      };
-    }
-    return data as Message;
-  };
 
   useEffect(() => {
     const handleNewMessage = (payload: any) => {
