@@ -22,7 +22,7 @@ export class ConversationsService {
   }
 
   async findAll(tenantId: string, filters: ConversationsQueryDto = {}): Promise<any[]> {
-    const { status, assignedUserId, channel, contactId, search } = filters;
+    const { status, assignedUserId, channelId, channel, contactId, search } = filters;
 
     const queryBuilder = this.conversationsRepository
       .createQueryBuilder('conversation')
@@ -38,8 +38,13 @@ export class ConversationsService {
       queryBuilder.andWhere('conversation.assignedUserId = :assignedUserId', { assignedUserId });
     }
 
-    if (channel) {
-      queryBuilder.andWhere('conversation.channel = :channel', { channel });
+    if (channelId) {
+      queryBuilder.andWhere('conversation.channel = :channelId', { channelId });
+    } else if (channel) {
+      queryBuilder.leftJoin('channels', 'channel', 'channel.id = conversation.channel');
+      queryBuilder.andWhere('(LOWER(channel.type) = LOWER(:channel) OR LOWER(channel.name) = LOWER(:channel))', {
+        channel,
+      });
     }
 
     if (contactId) {

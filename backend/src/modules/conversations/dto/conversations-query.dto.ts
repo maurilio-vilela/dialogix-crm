@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
-import { ConversationChannel, ConversationStatus } from '../entities/conversation.entity';
+import { ConversationStatus } from '../entities/conversation.entity';
 
 export class ConversationsQueryDto {
   @ApiPropertyOptional({ enum: ConversationStatus, description: 'Filtrar por status da conversa' })
@@ -13,10 +13,15 @@ export class ConversationsQueryDto {
   @IsUUID()
   assignedUserId?: string;
 
-  @ApiPropertyOptional({ enum: ConversationChannel, description: 'Filtrar por canal' })
+  @ApiPropertyOptional({ description: 'Filtrar por canal (UUID)' })
   @IsOptional()
-  @IsEnum(ConversationChannel)
-  channel?: ConversationChannel;
+  @IsUUID()
+  channelId?: string;
+
+  @ApiPropertyOptional({ description: 'Filtrar por canal (texto: whatsapp/instagram/telegram/email/webchat ou nome do canal)' })
+  @IsOptional()
+  @IsString()
+  channel?: string;
 
   @ApiPropertyOptional({ description: 'Filtrar por contato (UUID)' })
   @IsOptional()
