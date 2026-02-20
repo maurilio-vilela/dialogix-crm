@@ -11,6 +11,15 @@ export async function initialSeed() {
     const queryRunner = dataSource.createQueryRunner();
     await queryRunner.connect();
 
+    // 0. Clean up existing data
+    console.log('🧹 Cleaning up old data...');
+    await queryRunner.query(`
+      TRUNCATE TABLE
+        tenants, users, contacts, channels, tags, pipelines, pipeline_stages, deals, quick_replies, conversations, messages
+      RESTART IDENTITY CASCADE
+    `);
+    console.log('✅ Old data cleaned');
+
     // 1. Create Demo Tenant
     console.log('📦 Creating demo tenant...');
     const tenantResult = await queryRunner.query(`
