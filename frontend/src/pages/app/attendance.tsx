@@ -1,7 +1,22 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { MessageSquare, Info, Send, Loader2 } from 'lucide-react';
+import {
+  MessageSquare,
+  Info,
+  Send,
+  Loader2,
+  Paperclip,
+  Smile,
+  Zap,
+  ArrowLeftRight,
+  Calendar,
+  ClipboardList,
+  Briefcase,
+  Folder,
+  CheckCircle2,
+  Inbox,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import api from '@/lib/axios';
@@ -62,6 +77,13 @@ interface Message {
   content: string;
   createdAt: string;
 }
+
+const quickReplies = [
+  'Olá! Como posso ajudar?',
+  'Pode me passar mais detalhes?',
+  'Perfeito, vou verificar agora.',
+  'Obrigado! Já retorno com a solução.',
+];
 
 export function AttendancePage() {
   const queryClient = useQueryClient();
@@ -242,6 +264,19 @@ export function AttendancePage() {
     return colors[status] || 'bg-slate-500';
   };
 
+  const initialsFromName = (name?: string) => {
+    if (!name) return '??';
+    return name
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join('') || '??';
+  };
+
+  const activeContactName = activeConversation?.contact?.name || 'Sem nome';
+  const contactInitials = initialsFromName(activeContactName);
+
   return (
     <div className="flex h-[calc(100vh-4rem)] bg-background text-foreground">
       {/* Coluna 1: Lista de Conversas */}
@@ -308,17 +343,25 @@ export function AttendancePage() {
         {activeConversation ? (
           <>
             <header className="p-4 border-b flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold">
-                  {activeConversation.contact?.name || 'Sem nome'}
-                </h3>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground capitalize">
-                  <Badge className={`${getChannelBadge(activeConversation.channel)} text-white text-xs`}>
-                    {activeConversation.channel}
-                  </Badge>
-                  <Badge className={`${getStatusBadge(activeConversation.status)} text-white text-xs`}>
-                    {activeConversation.status}
-                  </Badge>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-sm font-semibold">
+                  {contactInitials}
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold">{activeContactName}</h3>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground capitalize">
+                    <Badge className={`${getChannelBadge(activeConversation.channel)} text-white text-xs`}>
+                      {activeConversation.channel}
+                    </Badge>
+                    <Badge className={`${getStatusBadge(activeConversation.status)} text-white text-xs`}>
+                      {activeConversation.status}
+                    </Badge>
+                    {isConnected ? (
+                      <span className="text-xs text-emerald-600">Online</span>
+                    ) : (
+                      <span className="text-xs text-red-500">Offline</span>
+                    )}
+                  </div>
                 </div>
               </div>
             </header>
@@ -333,34 +376,68 @@ export function AttendancePage() {
                   <p>Nenhuma mensagem ainda. Envie a primeira!</p>
                 </div>
               ) : (
-                messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}
-                  >
+                messages.map((msg) => {
+                  const isOutbound = msg.direction === 'outbound';
+                  const senderName = isOutbound ? msg.senderUser?.name || 'Você' : activeContactName;
+                  const senderInitials = initialsFromName(senderName);
+                  return (
                     <div
-                      className={`rounded-lg p-3 max-w-lg ${
-                        msg.direction === 'outbound'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted'
-                      }`}
+                      key={msg.id}
+                      className={`flex items-end gap-2 ${isOutbound ? 'justify-end' : 'justify-start'}`}
                     >
-                      {msg.direction === 'outbound' && msg.senderUser && (
-                        <p className="text-xs opacity-70 mb-1">{msg.senderUser.name}</p>
+                      {!isOutbound && (
+                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-semibold">
+                          {senderInitials}
+                        </div>
                       )}
-                      <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                      <span className="text-xs opacity-70 mt-1 block text-right">
-                        {formatTime(msg.createdAt)}
-                      </span>
+                      <div
+                        className={`rounded-lg p-3 max-w-lg ${
+                          isOutbound ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                        }`}
+                      >
+                        <p className="text-xs opacity-70 mb-1">{senderName}</p>
+                        <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                        <span className="text-xs opacity-70 mt-1 block text-right">
+                          {formatTime(msg.createdAt)}
+                        </span>
+                      </div>
+                      {isOutbound && (
+                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-semibold">
+                          {senderInitials}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
               <div ref={messagesEndRef} />
             </div>
 
-            <footer className="p-4 border-t">
-              <div className="flex gap-2">
+            <footer className="p-4 border-t space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {quickReplies.map((reply) => (
+                  <button
+                    key={reply}
+                    type="button"
+                    className="text-xs rounded-full border px-3 py-1 hover:bg-muted"
+                    onClick={() => setMessageInput(reply)}
+                  >
+                    {reply}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2 items-end">
+                <div className="flex items-center gap-1">
+                  <Button type="button" variant="outline" size="icon">
+                    <Smile className="h-4 w-4" />
+                  </Button>
+                  <Button type="button" variant="outline" size="icon">
+                    <Paperclip className="h-4 w-4" />
+                  </Button>
+                  <Button type="button" variant="outline" size="icon">
+                    <Zap className="h-4 w-4" />
+                  </Button>
+                </div>
                 <textarea
                   className="flex-1 bg-muted border rounded-lg p-2 resize-none focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="Digite sua mensagem..."
@@ -399,14 +476,14 @@ export function AttendancePage() {
           <h2 className="text-xl font-bold">Detalhes</h2>
         </div>
         {activeConversation?.contact ? (
-          <div className="flex-1 p-4 space-y-4">
+          <div className="flex-1 p-4 space-y-6 overflow-y-auto">
             <div className="text-center">
               <div className="w-24 h-24 rounded-full bg-muted mx-auto mb-2 flex items-center justify-center">
                 <span className="text-3xl font-bold text-muted-foreground">
-                  {activeConversation.contact.name.charAt(0).toUpperCase()}
+                  {contactInitials}
                 </span>
               </div>
-              <h3 className="text-lg font-semibold">{activeConversation.contact.name}</h3>
+              <h3 className="text-lg font-semibold">{activeContactName}</h3>
               <Badge className="mt-2 capitalize">{activeConversation.status}</Badge>
             </div>
             <div className="space-y-2">
@@ -421,6 +498,32 @@ export function AttendancePage() {
                   <strong>Telefone:</strong> {activeConversation.contact.phone}
                 </p>
               )}
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-semibold">Atalhos</h4>
+              <div className="grid gap-2">
+                <Button variant="outline" className="justify-start gap-2">
+                  <ArrowLeftRight className="h-4 w-4" /> Transferir
+                </Button>
+                <Button variant="outline" className="justify-start gap-2">
+                  <Calendar className="h-4 w-4" /> Agendar
+                </Button>
+                <Button variant="outline" className="justify-start gap-2">
+                  <ClipboardList className="h-4 w-4" /> Criar tarefa
+                </Button>
+                <Button variant="outline" className="justify-start gap-2">
+                  <Briefcase className="h-4 w-4" /> Oportunidade
+                </Button>
+                <Button variant="outline" className="justify-start gap-2">
+                  <Folder className="h-4 w-4" /> Arquivos
+                </Button>
+                <Button variant="outline" className="justify-start gap-2">
+                  <CheckCircle2 className="h-4 w-4" /> Finalizar atendimento
+                </Button>
+                <Button variant="outline" className="justify-start gap-2">
+                  <Inbox className="h-4 w-4" /> Enviar para fila
+                </Button>
+              </div>
             </div>
           </div>
         ) : (
