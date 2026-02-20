@@ -48,7 +48,7 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 3000
-      DATABASE_HOST: postgres
+      DATABASE_HOST: dialogix-crm_postgres
       DATABASE_PORT: 5432
       DATABASE_USER: ${DATABASE_USER:-dialogix}
       DATABASE_NAME: ${DATABASE_NAME:-dialogix_crm_dev}
