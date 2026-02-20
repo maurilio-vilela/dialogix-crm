@@ -9,7 +9,7 @@ import { toast } from 'react-hot-toast';
 
 interface Conversation {
   id: string;
-  contactId: string;
+  contactId?: string;
   contact?: {
     id: string;
     name: string;
@@ -36,21 +36,104 @@ interface Message {
   createdAt: string;
 }
 
+interface ApiConversation {
+  id: string;
+  contact_id?: string;
+  contactId?: string;
+  contact?: Conversation['contact'];
+  channel?: { id?: string; name?: string; type?: string } | string;
+  status: string;
+  last_message?: { content?: string; created_at?: string };
+  last_message_at?: string;
+  last_message_preview?: string;
+  lastMessage?: string;
+  lastMessageAt?: string;
+  unread_count?: number;
+  unreadCount?: number;
+}
+
+interface ApiMessage {
+  id: string;
+  conversation_id?: string;
+  conversationId?: string;
+  sender_user?: Message['senderUser'];
+  senderUser?: Message['senderUser'];
+  direction: 'inbound' | 'outbound';
+  content_type?: string;
+  type?: string;
+  content?: string;
+  body?: string;
+  created_at?: string;
+  createdAt?: string;
+}
+
+const normalizeConversation = (convo: ApiConversation): Conversation => {
+  const channelType =
+    typeof convo.channel === 'string'
+      ? convo.channel
+      : convo.channel?.type || convo.channel?.name || 'desconhecido';
+
+  const normalizedChannel = channelType ? channelType.toString().toLowerCase() : 'desconhecido';
+
+  return {
+    id: convo.id,
+    contactId: convo.contact_id || convo.contactId || convo.contact?.id,
+    contact: convo.contact,
+    channel: normalizedChannel,
+    status: convo.status,
+    lastMessage:
+      convo.last_message?.content ||
+      convo.lastMessage ||
+      convo.last_message_preview ||
+      undefined,
+    lastMessageAt:
+      convo.last_message?.created_at ||
+      convo.last_message_at ||
+      convo.lastMessageAt ||
+      undefined,
+    unreadCount: convo.unread_count ?? convo.unreadCount ?? 0,
+  };
+};
+
+const normalizeMessage = (msg: ApiMessage): Message => ({
+  id: msg.id,
+  conversationId: msg.conversation_id || msg.conversationId || '',
+  senderUser: msg.sender_user || msg.senderUser,
+  direction: msg.direction,
+  type: msg.content_type || msg.type || 'text',
+  content: msg.content || msg.body || '',
+  createdAt: msg.created_at || msg.createdAt || new Date().toISOString(),
+});
+
 export function AttendancePage() {
   const queryClient = useQueryClient();
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [messageInput, setMessageInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const socketToastRef = useRef(false);
 
   // Query: Listar conversas
   const { data: conversations = [], isLoading: loadingConversations } = useQuery<Conversation[]>({
     queryKey: ['conversations'],
     queryFn: async () => {
       const response = await api.get('/conversations');
-      return response.data;
+      const payload = response.data?.data ?? response.data ?? [];
+      return Array.isArray(payload) ? payload.map(normalizeConversation) : [];
     },
     refetchInterval: 10000, // Atualiza a cada 10s (fallback se WebSocket falhar)
   });
+
+  // Auto-selecionar primeira conversa disponível
+  useEffect(() => {
+    if (conversations.length === 0) {
+      setActiveConversationId(null);
+      return;
+    }
+
+    if (!activeConversationId || !conversations.some((c) => c.id === activeConversationId)) {
+      setActiveConversationId(conversations[0].id);
+    }
+  }, [conversations, activeConversationId]);
 
   // Query: Listar mensagens da conversa ativa
   const { data: messages = [], isLoading: loadingMessages } = useQuery<Message[]>({
@@ -58,7 +141,8 @@ export function AttendancePage() {
     queryFn: async () => {
       if (!activeConversationId) return [];
       const response = await api.get(`/messages/conversation/${activeConversationId}`);
-      return response.data;
+      const payload = response.data?.data ?? response.data ?? [];
+      return Array.isArray(payload) ? payload.map(normalizeMessage) : [];
     },
     enabled: !!activeConversationId,
   });
@@ -69,9 +153,10 @@ export function AttendancePage() {
       if (!activeConversationId) throw new Error('Nenhuma conversa selecionada');
       const response = await api.post('/messages', {
         conversationId: activeConversationId,
+        type: 'text',
         content,
       });
-      return response.data;
+      return response.data?.data ?? response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['messages', activeConversationId] });
@@ -90,15 +175,29 @@ export function AttendancePage() {
   });
 
   useEffect(() => {
-    const handleNewMessage = (data: Message) => {
+    if (!socketToastRef.current) {
+      socketToastRef.current = true;
+      return;
+    }
+    if (isConnected) {
+      toast.success('Conectado ao tempo real');
+    } else {
+      toast.error('Desconectado do tempo real');
+    }
+  }, [isConnected]);
+
+  useEffect(() => {
+    const handleNewMessage = (data: ApiMessage) => {
       console.log('📨 Nova mensagem recebida via WebSocket:', data);
 
+      const normalized = normalizeMessage(data);
+
       // Se a mensagem é da conversa ativa, adicionar à lista
-      if (data.conversationId === activeConversationId) {
+      if (normalized.conversationId === activeConversationId) {
         queryClient.setQueryData(['messages', activeConversationId], (old: Message[] = []) => {
           // Evitar duplicatas
-          if (old.some(m => m.id === data.id)) return old;
-          return [...old, data];
+          if (old.some(m => m.id === normalized.id)) return old;
+          return [...old, normalized];
         });
       }
 
@@ -116,15 +215,19 @@ export function AttendancePage() {
   // Auto-scroll para a última mensagem
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, activeConversationId]);
 
   const handleSendMessage = () => {
     const trimmed = messageInput.trim();
     if (!trimmed) return;
+    if (!activeConversationId) {
+      toast.error('Selecione uma conversa antes de enviar');
+      return;
+    }
     sendMessageMutation.mutate(trimmed);
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -159,6 +262,12 @@ export function AttendancePage() {
     return colors[channel] || 'bg-gray-500';
   };
 
+  const formatChannelLabel = (channel: string) => {
+    if (!channel) return 'desconhecido';
+    if (/^[0-9a-f-]{36}$/i.test(channel)) return 'canal';
+    return channel;
+  };
+
   return (
     <div className="flex h-[calc(100vh-4rem)] bg-background text-foreground">
       {/* Coluna 1: Lista de Conversas */}
@@ -173,8 +282,17 @@ export function AttendancePage() {
         </div>
         <div className="flex-1 overflow-y-auto">
           {loadingConversations ? (
-            <div className="flex items-center justify-center h-32">
-              <Loader2 className="h-6 w-6 animate-spin" />
+            <div className="space-y-4 p-4">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <div key={index} className="animate-pulse space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="h-4 w-32 rounded bg-muted" />
+                    <div className="h-3 w-10 rounded bg-muted" />
+                  </div>
+                  <div className="h-3 w-40 rounded bg-muted" />
+                  <div className="h-3 w-16 rounded bg-muted" />
+                </div>
+              ))}
             </div>
           ) : conversations.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
@@ -203,12 +321,14 @@ export function AttendancePage() {
                     {convo.lastMessage || 'Sem mensagens'}
                   </p>
                   {convo.unreadCount > 0 && (
-                    <Badge className="ml-2">{convo.unreadCount}</Badge>
+                    <Badge className="ml-2 h-5 min-w-[1.25rem] justify-center rounded-full px-1 text-xs">
+                      {convo.unreadCount > 99 ? '99+' : convo.unreadCount}
+                    </Badge>
                   )}
                 </div>
                 <div className="mt-2">
-                  <Badge className={`${getChannelBadge(convo.channel)} text-white text-xs`}>
-                    {convo.channel}
+                  <Badge className={`${getChannelBadge(convo.channel)} text-white text-xs capitalize`}>
+                    {formatChannelLabel(convo.channel)}
                   </Badge>
                 </div>
               </div>
@@ -227,15 +347,25 @@ export function AttendancePage() {
                   {activeConversation.contact?.name || 'Sem nome'}
                 </h3>
                 <span className="text-sm text-muted-foreground capitalize">
-                  {activeConversation.channel} • {activeConversation.status}
+                  {formatChannelLabel(activeConversation.channel)} • {activeConversation.status}
                 </span>
               </div>
             </header>
 
             <div className="flex-1 p-4 overflow-y-auto bg-muted/20 space-y-4">
               {loadingMessages ? (
-                <div className="flex items-center justify-center h-full">
-                  <Loader2 className="h-8 w-8 animate-spin" />
+                <div className="space-y-4">
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <div
+                      key={index}
+                      className={`flex ${index % 2 === 0 ? 'justify-start' : 'justify-end'}`}
+                    >
+                      <div className="w-2/3 rounded-lg bg-muted p-4 animate-pulse space-y-2">
+                        <div className="h-3 w-3/4 rounded bg-background/50" />
+                        <div className="h-3 w-1/2 rounded bg-background/50" />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : messages.length === 0 ? (
                 <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -276,7 +406,7 @@ export function AttendancePage() {
                   rows={2}
                   value={messageInput}
                   onChange={e => setMessageInput(e.target.value)}
-                  onKeyPress={handleKeyPress}
+                  onKeyDown={handleKeyDown}
                   disabled={sendMessageMutation.isPending}
                 />
                 <Button
