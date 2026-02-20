@@ -220,13 +220,14 @@ export async function initialSeed() {
 
       for (const msg of messages) {
         const senderId = msg.direction === 'incoming' ? contactId : assignedUserId;
+        const senderType = msg.direction === 'incoming' ? 'contact' : 'user';
         await queryRunner.query(`
-          INSERT INTO messages (conversation_id, body, direction, sender_id)
+          INSERT INTO messages (conversation_id, body, sender_type, sender_id)
           VALUES ($1, $2, $3, $4)
         `, [
           convoId,
           msg.body,
-          msg.direction,
+          senderType,
           senderId,
         ]);
         totalMessages++;
