@@ -1,7 +1,7 @@
 import dataSource from '../data-source';
 import * as bcrypt from 'bcrypt';
 
-async function seed() {
+export async function initialSeed() {
   try {
     console.log('🌱 Starting database seeding...');
 
@@ -252,5 +252,3 @@ async function seed() {
     process.exit(1);
   }
 }
-
-seed();
