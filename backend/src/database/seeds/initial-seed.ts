@@ -158,6 +158,74 @@ async function seed() {
     }
     console.log(`✅ ${quickReplies.length} quick replies created`);
 
+    // 11. Create Conversations
+    console.log('💬 Creating demo conversations...');
+    const conversations = [];
+    // Create a conversation for the first 3 contacts
+    for (let i = 0; i < 3; i++) {
+      const conversationResult = await queryRunner.query(`
+        INSERT INTO conversations (tenant_id, contact_id, channel_id, assigned_to, status)
+        VALUES ($1, $2, $3, $4, 'open')
+        RETURNING id
+      `, [
+        tenantId,
+        contacts[i],
+        channelId,
+        i % 2 === 0 ? agentId : adminId, // Alternate assignment
+      ]);
+      conversations.push(conversationResult[0].id);
+    }
+    console.log(`✅ ${conversations.length} conversations created`);
+
+    // 12. Create Messages for Conversations
+    console.log('📜 Creating demo messages...');
+    const conversationMessages = [
+      // Convo 1
+      [
+        { direction: 'incoming', content: 'Olá, tudo bem? Gostaria de um orçamento.' },
+        { direction: 'outgoing', content: 'Olá! Claro, para qual serviço seria?' },
+        { direction: 'incoming', content: 'Seria para o plano Pro. Vocês têm desconto anual?' },
+        { direction: 'outgoing', content: 'Temos sim! O plano anual tem 20% de desconto.' },
+      ],
+      // Convo 2
+      [
+        { direction: 'incoming', content: 'Oi, estou com um problema no meu login.' },
+        { direction: 'outgoing', content: 'Bom dia. Lamento por isso. Qual e-mail você está usando?' },
+      ],
+      // Convo 3 (longer)
+      [
+        { direction: 'incoming', content: 'Boa tarde, recebi a proposta de vocês.' },
+        { direction: 'outgoing', content: 'Ótimo! Ficou alguma dúvida?' },
+        { direction: 'incoming', content: 'Nenhuma, está tudo certo. Podemos fechar.' },
+        { direction: 'outgoing', content: 'Maravilha! Vou preparar o contrato e te envio em seguida.' },
+        { direction: 'incoming', content: 'Perfeito, fico no aguardo. Obrigado!' },
+      ]
+    ];
+
+    let totalMessages = 0;
+    for (let i = 0; i < conversations.length; i++) {
+      const convoId = conversations[i];
+      const messages = conversationMessages[i];
+      const assignedUserId = i % 2 === 0 ? agentId : adminId;
+      const contactId = contacts[i];
+
+      for (const msg of messages) {
+        // Here we correctly use contactId for incoming and assignedUserId for outgoing
+        const senderId = msg.direction === 'incoming' ? contactId : assignedUserId;
+        await queryRunner.query(`
+          INSERT INTO messages (conversation_id, content, direction, sender_id)
+          VALUES ($1, $2, $3, $4)
+        `, [
+          convoId,
+          msg.content,
+          msg.direction,
+          senderId,
+        ]);
+        totalMessages++;
+      }
+    }
+    console.log(`✅ ${totalMessages} messages created`);
+
     await queryRunner.release();
     await dataSource.destroy();
 
@@ -174,6 +242,8 @@ async function seed() {
     console.log(`   Tags: 5`);
     console.log(`   Pipeline Stages: 5`);
     console.log(`   Deals: 5`);
+    console.log(`   Conversations: 3`);
+    console.log(`   Messages: ${totalMessages}`);
     console.log('');
 
     process.exit(0);
