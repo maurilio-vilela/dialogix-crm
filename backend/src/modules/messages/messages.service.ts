@@ -34,12 +34,9 @@ export class MessagesService {
     const savedMessage = await this.messagesRepository.save(message);
 
     // 4. Atualizar a conversa com a última mensagem
-    conversation.lastMessage = savedMessage.content.substring(0, 100);
-    conversation.lastMessageAt = savedMessage.createdAt;
-    await this.conversationsService.update(conversation.id, tenantId, { 
-      status: conversation.status,
-      assignedUserId: conversation.assignedUserId 
-    });
+    const lastMessage = savedMessage.content.substring(0, 100);
+    const lastMessageAt = savedMessage.createdAt;
+    await this.conversationsService.updateLastMessage(conversation.id, tenantId, lastMessage, lastMessageAt);
 
     // 5. Emitir evento via WebSocket
     this.chatGateway.sendMessageToTenant(tenantId, 'message:new', savedMessage);

@@ -72,6 +72,13 @@ export class ConversationsService {
     return this.conversationsRepository.save(conversation);
   }
 
+  async updateLastMessage(id: string, tenantId: string, lastMessage: string, lastMessageAt: Date): Promise<void> {
+    const result = await this.conversationsRepository.update({ id, tenantId }, { lastMessage, lastMessageAt });
+    if (!result.affected) {
+      throw new NotFoundException(`Conversation #${id} not found`);
+    }
+  }
+
   async remove(id: string, tenantId: string): Promise<void> {
     const conversation = await this.findOne(id, tenantId);
     await this.conversationsRepository.remove(conversation);
