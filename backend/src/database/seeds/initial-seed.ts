@@ -222,9 +222,10 @@ export async function initialSeed() {
         const senderId = msg.direction === 'incoming' ? contactId : assignedUserId;
         const senderType = msg.direction === 'incoming' ? 'contact' : 'user';
         await queryRunner.query(`
-          INSERT INTO messages (conversation_id, body, sender_type, sender_id)
-          VALUES ($1, $2, $3, $4)
+          INSERT INTO messages (tenant_id, conversation_id, body, sender_type, sender_id)
+          VALUES ($1, $2, $3, $4, $5)
         `, [
+          tenantId,
           convoId,
           msg.body,
           senderType,
