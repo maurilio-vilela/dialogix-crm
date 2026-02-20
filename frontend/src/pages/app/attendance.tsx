@@ -326,9 +326,9 @@ export function AttendancePage() {
   });
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] bg-gradient-to-br from-background via-background to-muted/30 text-foreground">
+    <div className="flex flex-col lg:flex-row min-h-[calc(100vh-4rem)] bg-gradient-to-br from-background via-background to-muted/30 text-foreground">
       {/* Coluna 1: Lista de Conversas */}
-      <aside className="w-80 border-r bg-background/80 backdrop-blur flex flex-col">
+      <aside className="w-full lg:w-80 border-b lg:border-b-0 lg:border-r bg-background/80 backdrop-blur flex flex-col">
         <div className="p-4 border-b space-y-3">
           <div className="flex justify-between items-center">
             <div>
@@ -394,7 +394,7 @@ export function AttendancePage() {
       </aside>
 
       {/* Coluna 2: Chat Ativo */}
-      <main className="flex-1 flex flex-col">
+      <main className="flex-1 flex flex-col order-2">
         {activeConversation ? (
           <>
             <ChatHeader
@@ -431,7 +431,7 @@ export function AttendancePage() {
       </main>
 
       {/* Coluna 3: Detalhes do Contato/Conversa */}
-      <aside className="w-80 border-l flex flex-col">
+      <aside className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l flex flex-col order-3">
         <div className="p-4 border-b">
           <h2 className="text-xl font-bold">Detalhes</h2>
         </div>

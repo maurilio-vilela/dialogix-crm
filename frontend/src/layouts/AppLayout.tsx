@@ -1,29 +1,158 @@
-import { Navigate, Outlet, Link } from 'react-router-dom';
+import { Navigate, Outlet, Link, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import {
+  LayoutDashboard,
+  MessageSquare,
+  Zap,
+  Users,
+  Calendar,
+  Megaphone,
+  Bot,
+  Building2,
+  Headphones,
+  Clock,
+  BarChart3,
+  Settings,
+  HelpCircle,
+  LogOut,
+  ChevronLeft,
+  Menu,
+  Sun,
+  Moon,
+} from 'lucide-react';
 import { useAuthStore } from '../store/auth';
+
+const navItems = [
+  { label: 'Dashboard', to: '/', icon: LayoutDashboard },
+  { label: 'Atendimentos', to: '/atendimento', icon: MessageSquare },
+  { label: 'Mensagens Rápidas', to: '/quick-replies', icon: Zap },
+  { label: 'Contatos', to: '/contacts', icon: Users },
+  { label: 'Agendamentos', to: '/agendamentos', icon: Calendar },
+  { label: 'Campanhas', to: '/campanhas', icon: Megaphone },
+  { label: 'Agentes de IA', to: '/ai-agents', icon: Bot },
+  { label: 'Chatbot', to: '/chatbot', icon: Bot },
+  { label: 'Departamentos', to: '/departamentos', icon: Building2 },
+  { label: 'Canais de atendimento', to: '/canais', icon: Headphones },
+  { label: 'Horários', to: '/horarios', icon: Clock },
+  { label: 'Relatórios', to: '/relatorios', icon: BarChart3 },
+  { label: 'Configurações', to: '/settings', icon: Settings },
+  { label: 'Ajuda', to: '/help', icon: HelpCircle },
+];
 
 export function AppLayout() {
   const { token } = useAuthStore();
+  const location = useLocation();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (isDark) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  }, [isDark]);
 
   if (!token) {
     return <Navigate to="/login" />;
   }
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="w-64 bg-gray-800 text-white p-4">
-        <h1 className="text-2xl font-bold">Dialogix</h1>
-        <nav className="mt-8">
-          <ul>
-            <li><Link to="/" className="block py-2">Dashboard</Link></li>
-            <li><Link to="/atendimento" className="block py-2">Atendimento</Link></li>
-            <li><Link to="/contacts" className="block py-2">Contatos</Link></li>
-            <li><Link to="/chat-test" className="block py-2 text-green-400">🧪 Teste WebSocket</Link></li>
-          </ul>
-        </nav>
-      </aside>
-      <main className="flex-1 p-8 bg-gray-100 dark:bg-gray-900">
-        <Outlet />
-      </main>
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="flex items-center justify-between px-4 py-3 border-b bg-background/90 backdrop-blur lg:hidden">
+        <button
+          type="button"
+          className="inline-flex items-center gap-2 text-sm font-medium"
+          onClick={() => setIsSidebarOpen((prev) => !prev)}
+        >
+          <Menu className="h-5 w-5" />
+          Menu
+        </button>
+        <button
+          type="button"
+          className="inline-flex items-center gap-2 text-sm"
+          onClick={() => setIsDark((prev) => !prev)}
+        >
+          {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </button>
+      </header>
+
+      <div className="flex min-h-[calc(100vh-56px)] lg:min-h-screen">
+        <aside
+          className={`fixed inset-y-0 left-0 z-40 w-64 border-r bg-muted/40 backdrop-blur transition-transform duration-200 lg:static lg:translate-x-0 ${
+            isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          } ${isCollapsed ? 'lg:w-20' : 'lg:w-64'}`}
+        >
+          <div className="flex items-center justify-between px-4 py-4 border-b">
+            <div className="flex items-center gap-2">
+              <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary font-bold flex items-center justify-center">
+                D
+              </div>
+              {!isCollapsed && <span className="text-lg font-semibold">Dialogix</span>}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="hidden lg:inline-flex p-2 rounded-lg hover:bg-muted"
+                onClick={() => setIsCollapsed((prev) => !prev)}
+              >
+                <ChevronLeft className={`h-4 w-4 transition ${isCollapsed ? 'rotate-180' : ''}`} />
+              </button>
+              <button
+                type="button"
+                className="hidden lg:inline-flex p-2 rounded-lg hover:bg-muted"
+                onClick={() => setIsDark((prev) => !prev)}
+              >
+                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+
+          <nav className="px-2 py-4 space-y-1 overflow-y-auto h-[calc(100%-120px)]">
+            {navItems.map((item) => {
+              const isActive = location.pathname === item.to;
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.label}
+                  to={item.to}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                    isActive
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-foreground/80 hover:bg-muted'
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {!isCollapsed && <span>{item.label}</span>}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="mt-auto px-3 py-4 border-t">
+            <button
+              type="button"
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-500/10"
+            >
+              <LogOut className="h-4 w-4" />
+              {!isCollapsed && <span>Sair</span>}
+            </button>
+          </div>
+        </aside>
+
+        {isSidebarOpen && (
+          <div
+            className="fixed inset-0 z-30 bg-black/40 lg:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+
+        <main className="flex-1 p-4 lg:p-6 bg-muted/20">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { MessageSquare, Loader2 } from 'lucide-react';
+import { MessageSquare, Loader2, Instagram, Facebook, MessageCircle, Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export interface ConversationSummary {
@@ -48,6 +48,18 @@ export function ConversationsList({
     );
   }
 
+  const channelIcon = (channel: string) => {
+    switch (channel) {
+      case 'instagram':
+        return <Instagram className="h-3.5 w-3.5" />;
+      case 'messenger':
+        return <Facebook className="h-3.5 w-3.5" />;
+      case 'whatsapp':
+      default:
+        return <MessageCircle className="h-3.5 w-3.5" />;
+    }
+  };
+
   return (
     <>
       {conversations.map((convo) => (
@@ -61,15 +73,26 @@ export function ConversationsList({
           onClick={() => onSelect(convo.id)}
         >
           <div className="flex gap-3 items-start">
-            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-sm font-semibold">
-              {convo.contactInitials}
+            <div className="relative w-10 h-10">
+              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-sm font-semibold">
+                {convo.contactInitials}
+              </div>
+              <span
+                className={`absolute -bottom-1 -right-1 h-5 w-5 rounded-full text-white border border-background flex items-center justify-center ${getChannelBadge(
+                  convo.channel
+                )}`}
+                title={convo.channel}
+              >
+                {channelIcon(convo.channel)}
+              </span>
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex justify-between items-start mb-1">
                 <h3 className="font-semibold truncate flex-1">{convo.contactName}</h3>
-                <span className="text-xs text-muted-foreground ml-2">
-                  {formatTime(convo.lastMessageAt)}
-                </span>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground ml-2">
+                  <span>{formatTime(convo.lastMessageAt)}</span>
+                  <Eye className="h-3.5 w-3.5" />
+                </div>
               </div>
               <div className="flex justify-between items-center">
                 <p className="text-sm text-muted-foreground truncate flex-1">

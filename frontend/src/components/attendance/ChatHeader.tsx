@@ -1,4 +1,13 @@
 import { Badge } from '@/components/ui/badge';
+import {
+  RotateCcw,
+  Phone,
+  ClipboardList,
+  Calendar,
+  Briefcase,
+  Folder,
+  ArrowLeftRight,
+} from 'lucide-react';
 
 interface ChatHeaderProps {
   contactName: string;
@@ -19,15 +28,25 @@ export function ChatHeader({
   getChannelBadge,
   getStatusBadge,
 }: ChatHeaderProps) {
+  const actions = [
+    { label: 'Fila', icon: RotateCcw },
+    { label: 'Voz', icon: Phone },
+    { label: 'Tarefa', icon: ClipboardList },
+    { label: 'Agendar', icon: Calendar },
+    { label: 'Oportunidade', icon: Briefcase },
+    { label: 'Arquivos', icon: Folder },
+    { label: 'Transferir', icon: ArrowLeftRight },
+  ];
+
   return (
-    <header className="p-4 border-b bg-background/80 backdrop-blur flex items-center justify-between">
+    <header className="p-4 border-b bg-background/80 backdrop-blur flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-sm font-semibold">
           {contactInitials}
         </div>
         <div>
           <h3 className="text-lg font-semibold">{contactName}</h3>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground capitalize">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground capitalize">
             <Badge className={`${getChannelBadge(channel)} text-white text-xs`}>{channel}</Badge>
             <Badge className={`${getStatusBadge(status)} text-white text-xs`}>{status}</Badge>
             {isConnected ? (
@@ -37,6 +56,22 @@ export function ChatHeader({
             )}
           </div>
         </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {actions.map((action) => {
+          const Icon = action.icon;
+          return (
+            <button
+              key={action.label}
+              type="button"
+              className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted/60"
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {action.label}
+            </button>
+          );
+        })}
       </div>
     </header>
   );

@@ -1,4 +1,4 @@
-import { Paperclip, Smile, Zap, Send, Loader2 } from 'lucide-react';
+import { Paperclip, Smile, Zap, Send, Loader2, Maximize2, Mic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuickReplies } from './QuickReplies';
 
@@ -33,18 +33,29 @@ export function MessageComposer({
             <Paperclip className="h-4 w-4" />
           </Button>
           <Button type="button" variant="outline" size="icon">
+            <Mic className="h-4 w-4" />
+          </Button>
+          <Button type="button" variant="outline" size="icon">
             <Zap className="h-4 w-4" />
           </Button>
         </div>
-        <textarea
-          className="flex-1 bg-muted/60 border rounded-xl p-3 resize-none focus:outline-none focus:ring-2 focus:ring-primary min-h-[56px]"
-          placeholder="Digite sua mensagem..."
-          rows={2}
-          value={messageInput}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={onKeyDown}
-          disabled={isSending}
-        />
+        <div className="flex-1 relative">
+          <textarea
+            className="w-full bg-muted/60 border rounded-xl p-3 pr-10 resize-none focus:outline-none focus:ring-2 focus:ring-primary min-h-[56px]"
+            placeholder="Digite sua mensagem..."
+            rows={2}
+            value={messageInput}
+            onChange={(e) => onChange(e.target.value)}
+            onKeyDown={onKeyDown}
+            disabled={isSending}
+          />
+          <button
+            type="button"
+            className="absolute bottom-2 right-2 text-muted-foreground hover:text-foreground"
+          >
+            <Maximize2 className="h-4 w-4" />
+          </button>
+        </div>
         <Button
           onClick={onSend}
           disabled={!messageInput.trim() || isSending}
