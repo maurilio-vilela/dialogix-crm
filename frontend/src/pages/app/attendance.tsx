@@ -9,23 +9,17 @@ import { toast } from 'react-hot-toast';
 
 interface ApiConversation {
   id: string;
-  contact_id?: string;
-  contactId?: string;
+  status: string;
+  channel: string;
   contact?: {
     id: string;
     name: string;
     email?: string;
     phone?: string;
   };
-  channel?: { id?: string; name?: string; type?: string } | string;
-  status: string;
-  last_message?: { content?: string; created_at?: string };
-  last_message_at?: string;
-  last_message_preview?: string;
+  unreadCount: number;
   lastMessage?: string;
   lastMessageAt?: string;
-  unread_count?: number;
-  unreadCount?: number;
 }
 
 interface Conversation {
@@ -45,23 +39,15 @@ interface Conversation {
 
 interface ApiMessage {
   id: string;
-  conversation_id?: string;
-  conversationId?: string;
-  sender_user?: {
-    id: string;
-    name: string;
-  };
+  conversationId: string;
   senderUser?: {
     id: string;
     name: string;
   };
   direction: 'inbound' | 'outbound';
-  content_type?: string;
-  type?: string;
-  content?: string;
-  body?: string;
-  created_at?: string;
-  createdAt?: string;
+  type: string;
+  content: string;
+  createdAt: string;
 }
 
 interface Message {
@@ -77,43 +63,6 @@ interface Message {
   createdAt: string;
 }
 
-const normalizeConversation = (convo: ApiConversation): Conversation => {
-  const channelType =
-    typeof convo.channel === 'string'
-      ? convo.channel
-      : convo.channel?.type || convo.channel?.name || 'desconhecido';
-
-  const normalizedChannel = channelType ? channelType.toString().toLowerCase() : 'desconhecido';
-
-  return {
-    id: convo.id,
-    contact: convo.contact,
-    channel: normalizedChannel,
-    status: convo.status,
-    lastMessage:
-      convo.last_message?.content ||
-      convo.lastMessage ||
-      convo.last_message_preview ||
-      undefined,
-    lastMessageAt:
-      convo.last_message?.created_at ||
-      convo.last_message_at ||
-      convo.lastMessageAt ||
-      undefined,
-    unreadCount: convo.unread_count ?? convo.unreadCount ?? 0,
-  };
-};
-
-const normalizeMessage = (msg: ApiMessage): Message => ({
-  id: msg.id,
-  conversationId: msg.conversation_id || msg.conversationId || '',
-  senderUser: msg.sender_user || msg.senderUser,
-  direction: msg.direction,
-  type: msg.content_type || msg.type || 'text',
-  content: msg.content || msg.body || '',
-  createdAt: msg.created_at || msg.createdAt || new Date().toISOString(),
-});
-
 export function AttendancePage() {
   const queryClient = useQueryClient();
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -124,33 +73,37 @@ export function AttendancePage() {
   const { data: conversations = [], isLoading: loadingConversations } = useQuery<Conversation[]>({
     queryKey: ['conversations'],
     queryFn: async () => {
-      const response = await api.get('/conversations');
-      const payload = response.data?.data ?? response.data ?? [];
-      return Array.isArray(payload) ? payload.map(normalizeConversation) : [];
+      const response = await api.get<ApiConversation[]>('/conversations');
+      const data = response.data || [];
+      return data.map((convo) => ({
+        id: convo.id,
+        contact: convo.contact,
+        channel: convo.channel || 'unknown',
+        status: convo.status,
+        lastMessage: convo.lastMessage,
+        lastMessageAt: convo.lastMessageAt,
+        unreadCount: convo.unreadCount || 0,
+      }));
     },
     refetchInterval: 10000, // Atualiza a cada 10s (fallback se WebSocket falhar)
   });
-
-  // Auto-selecionar primeira conversa disponível
-  useEffect(() => {
-    if (conversations.length === 0) {
-      setActiveConversationId(null);
-      return;
-    }
-
-    if (!activeConversationId || !conversations.some((c) => c.id === activeConversationId)) {
-      setActiveConversationId(conversations[0].id);
-    }
-  }, [conversations, activeConversationId]);
 
   // Query: Listar mensagens da conversa ativa
   const { data: messages = [], isLoading: loadingMessages } = useQuery<Message[]>({
     queryKey: ['messages', activeConversationId],
     queryFn: async () => {
       if (!activeConversationId) return [];
-      const response = await api.get(`/messages/conversation/${activeConversationId}`);
-      const payload = response.data?.data ?? response.data ?? [];
-      return Array.isArray(payload) ? payload.map(normalizeMessage) : [];
+      const response = await api.get<ApiMessage[]>(`/messages/conversation/${activeConversationId}`);
+      const data = response.data || [];
+      return data.map((msg) => ({
+        id: msg.id,
+        conversationId: msg.conversationId,
+        senderUser: msg.senderUser,
+        direction: msg.direction,
+        type: msg.type,
+        content: msg.content,
+        createdAt: msg.createdAt,
+      }));
     },
     enabled: !!activeConversationId,
   });
@@ -164,7 +117,7 @@ export function AttendancePage() {
         type: 'text',
         content,
       });
-      return response.data?.data ?? response.data;
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['messages', activeConversationId] });
@@ -182,15 +135,41 @@ export function AttendancePage() {
     autoConnect: true,
   });
 
-  useEffect(() => {
-    const handleNewMessage = (payload: ApiMessage) => {
-      console.log('📨 Nova mensagem recebida via WebSocket:', payload);
-      const normalized = normalizeMessage(payload);
+  const normalizeMessage = (data: any): Message => {
+    if (data?.conversationId) {
+      return {
+        id: data.id,
+        conversationId: data.conversationId,
+        senderUser: data.senderUser,
+        direction: data.direction,
+        type: data.type,
+        content: data.content,
+        createdAt: data.createdAt,
+      };
+    }
+    if (data?.conversation_id) {
+      return {
+        id: data.id,
+        conversationId: data.conversation_id,
+        senderUser: data.sender_user,
+        direction: data.direction,
+        type: data.content_type,
+        content: data.content,
+        createdAt: data.created_at,
+      };
+    }
+    return data as Message;
+  };
 
-      if (normalized.conversationId === activeConversationId) {
+  useEffect(() => {
+    const handleNewMessage = (payload: any) => {
+      const data = normalizeMessage(payload);
+      console.log('📨 Nova mensagem recebida via WebSocket:', data);
+
+      if (data.conversationId === activeConversationId) {
         queryClient.setQueryData(['messages', activeConversationId], (old: Message[] = []) => {
-          if (old.some((m) => m.id === normalized.id)) return old;
-          return [...old, normalized];
+          if (old.some((m) => m.id === data.id)) return old;
+          return [...old, data];
         });
       }
 
@@ -207,15 +186,11 @@ export function AttendancePage() {
   // Auto-scroll para a última mensagem
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, activeConversationId]);
+  }, [messages]);
 
   const handleSendMessage = () => {
     const trimmed = messageInput.trim();
     if (!trimmed) return;
-    if (!activeConversationId) {
-      toast.error('Selecione uma conversa antes de enviar');
-      return;
-    }
     sendMessageMutation.mutate(trimmed);
   };
 
@@ -267,12 +242,6 @@ export function AttendancePage() {
     return colors[status] || 'bg-slate-500';
   };
 
-  const formatChannelLabel = (channel: string) => {
-    if (!channel) return 'desconhecido';
-    if (/^[0-9a-f-]{36}$/i.test(channel)) return 'canal';
-    return channel;
-  };
-
   return (
     <div className="flex h-[calc(100vh-4rem)] bg-background text-foreground">
       {/* Coluna 1: Lista de Conversas */}
@@ -287,17 +256,8 @@ export function AttendancePage() {
         </div>
         <div className="flex-1 overflow-y-auto">
           {loadingConversations ? (
-            <div className="space-y-4 p-4">
-              {Array.from({ length: 6 }).map((_, index) => (
-                <div key={index} className="animate-pulse space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="h-4 w-32 rounded bg-muted" />
-                    <div className="h-3 w-10 rounded bg-muted" />
-                  </div>
-                  <div className="h-3 w-40 rounded bg-muted" />
-                  <div className="h-3 w-16 rounded bg-muted" />
-                </div>
-              ))}
+            <div className="flex items-center justify-center h-32">
+              <Loader2 className="h-6 w-6 animate-spin" />
             </div>
           ) : conversations.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
@@ -326,16 +286,14 @@ export function AttendancePage() {
                     {convo.lastMessage || 'Sem mensagens'}
                   </p>
                   {convo.unreadCount > 0 && (
-                    <Badge className="ml-2 h-5 min-w-[1.25rem] justify-center rounded-full px-1 text-xs">
-                      {convo.unreadCount > 99 ? '99+' : convo.unreadCount}
-                    </Badge>
+                    <Badge className="ml-2">{convo.unreadCount}</Badge>
                   )}
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  <Badge className={`${getChannelBadge(convo.channel)} text-white text-xs capitalize`}>
-                    {formatChannelLabel(convo.channel)}
+                  <Badge className={`${getChannelBadge(convo.channel)} text-white text-xs`}>
+                    {convo.channel}
                   </Badge>
-                  <Badge className={`${getStatusBadge(convo.status)} text-white text-xs capitalize`}>
+                  <Badge className={`${getStatusBadge(convo.status)} text-white text-xs`}>
                     {convo.status}
                   </Badge>
                 </div>
@@ -356,7 +314,7 @@ export function AttendancePage() {
                 </h3>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground capitalize">
                   <Badge className={`${getChannelBadge(activeConversation.channel)} text-white text-xs`}>
-                    {formatChannelLabel(activeConversation.channel)}
+                    {activeConversation.channel}
                   </Badge>
                   <Badge className={`${getStatusBadge(activeConversation.status)} text-white text-xs`}>
                     {activeConversation.status}
@@ -367,18 +325,8 @@ export function AttendancePage() {
 
             <div className="flex-1 p-4 overflow-y-auto bg-muted/20 space-y-4">
               {loadingMessages ? (
-                <div className="space-y-4">
-                  {Array.from({ length: 5 }).map((_, index) => (
-                    <div
-                      key={index}
-                      className={`flex ${index % 2 === 0 ? 'justify-start' : 'justify-end'}`}
-                    >
-                      <div className="w-2/3 rounded-lg bg-muted p-4 animate-pulse space-y-2">
-                        <div className="h-3 w-3/4 rounded bg-background/50" />
-                        <div className="h-3 w-1/2 rounded bg-background/50" />
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex items-center justify-center h-full">
+                  <Loader2 className="h-8 w-8 animate-spin" />
                 </div>
               ) : messages.length === 0 ? (
                 <div className="flex items-center justify-center h-full text-muted-foreground">
