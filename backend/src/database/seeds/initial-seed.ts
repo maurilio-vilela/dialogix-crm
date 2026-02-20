@@ -191,23 +191,23 @@ export async function initialSeed() {
     const conversationMessages = [
       // Convo 1
       [
-        { direction: 'incoming', content: 'Olá, tudo bem? Gostaria de um orçamento.' },
-        { direction: 'outgoing', content: 'Olá! Claro, para qual serviço seria?' },
-        { direction: 'incoming', content: 'Seria para o plano Pro. Vocês têm desconto anual?' },
-        { direction: 'outgoing', content: 'Temos sim! O plano anual tem 20% de desconto.' },
+        { direction: 'incoming', text: 'Olá, tudo bem? Gostaria de um orçamento.' },
+        { direction: 'outgoing', text: 'Olá! Claro, para qual serviço seria?' },
+        { direction: 'incoming', text: 'Seria para o plano Pro. Vocês têm desconto anual?' },
+        { direction: 'outgoing', text: 'Temos sim! O plano anual tem 20% de desconto.' },
       ],
       // Convo 2
       [
-        { direction: 'incoming', content: 'Oi, estou com um problema no meu login.' },
-        { direction: 'outgoing', content: 'Bom dia. Lamento por isso. Qual e-mail você está usando?' },
+        { direction: 'incoming', text: 'Oi, estou com um problema no meu login.' },
+        { direction: 'outgoing', text: 'Bom dia. Lamento por isso. Qual e-mail você está usando?' },
       ],
       // Convo 3 (longer)
       [
-        { direction: 'incoming', content: 'Boa tarde, recebi a proposta de vocês.' },
-        { direction: 'outgoing', content: 'Ótimo! Ficou alguma dúvida?' },
-        { direction: 'incoming', content: 'Nenhuma, está tudo certo. Podemos fechar.' },
-        { direction: 'outgoing', content: 'Maravilha! Vou preparar o contrato e te envio em seguida.' },
-        { direction: 'incoming', content: 'Perfeito, fico no aguardo. Obrigado!' },
+        { direction: 'incoming', text: 'Boa tarde, recebi a proposta de vocês.' },
+        { direction: 'outgoing', text: 'Ótimo! Ficou alguma dúvida?' },
+        { direction: 'incoming', text: 'Nenhuma, está tudo certo. Podemos fechar.' },
+        { direction: 'outgoing', text: 'Maravilha! Vou preparar o contrato e te envio em seguida.' },
+        { direction: 'incoming', text: 'Perfeito, fico no aguardo. Obrigado!' },
       ]
     ];
 
@@ -222,11 +222,11 @@ export async function initialSeed() {
         // Here we correctly use contactId for incoming and assignedUserId for outgoing
         const senderId = msg.direction === 'incoming' ? contactId : assignedUserId;
         await queryRunner.query(`
-          INSERT INTO messages (conversation_id, content, direction, sender_id)
+          INSERT INTO messages (conversation_id, text, direction, sender_id)
           VALUES ($1, $2, $3, $4)
         `, [
           convoId,
-          msg.content,
+          msg.text,
           msg.direction,
           senderId,
         ]);
