@@ -1,26 +1,19 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import {
-  MessageSquare,
-  Info,
-  Send,
-  Loader2,
-  Paperclip,
-  Smile,
-  Zap,
-  ArrowLeftRight,
-  Calendar,
-  ClipboardList,
-  Briefcase,
-  Folder,
-  CheckCircle2,
-  Inbox,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { MessageSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import api from '@/lib/axios';
 import { toast } from 'react-hot-toast';
+import {
+  ConversationsList,
+  ChatHeader,
+  MessagesList,
+  MessageComposer,
+  DetailsPanel,
+  ConversationSummary,
+  MessageItem,
+} from '@/components/attendance';
 
 interface ApiConversation {
   id: string;
@@ -277,6 +270,29 @@ export function AttendancePage() {
   const activeContactName = activeConversation?.contact?.name || 'Sem nome';
   const contactInitials = initialsFromName(activeContactName);
 
+  const conversationSummaries: ConversationSummary[] = conversations.map((convo) => ({
+    id: convo.id,
+    contactName: convo.contact?.name || 'Sem nome',
+    channel: convo.channel,
+    status: convo.status,
+    lastMessage: convo.lastMessage,
+    lastMessageAt: convo.lastMessageAt,
+    unreadCount: convo.unreadCount,
+  }));
+
+  const messageItems: MessageItem[] = messages.map((msg) => {
+    const isOutbound = msg.direction === 'outbound';
+    const senderName = isOutbound ? msg.senderUser?.name || 'Você' : activeContactName;
+    return {
+      id: msg.id,
+      direction: msg.direction,
+      content: msg.content,
+      createdAt: msg.createdAt,
+      senderName,
+      senderInitials: initialsFromName(senderName),
+    };
+  });
+
   return (
     <div className="flex h-[calc(100vh-4rem)] bg-background text-foreground">
       {/* Coluna 1: Lista de Conversas */}
@@ -290,51 +306,15 @@ export function AttendancePage() {
           )}
         </div>
         <div className="flex-1 overflow-y-auto">
-          {loadingConversations ? (
-            <div className="flex items-center justify-center h-32">
-              <Loader2 className="h-6 w-6 animate-spin" />
-            </div>
-          ) : conversations.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-sm">Nenhuma conversa ainda</p>
-            </div>
-          ) : (
-            conversations.map((convo) => (
-              <div
-                key={convo.id}
-                className={`p-4 border-b cursor-pointer transition-colors ${
-                  activeConversationId === convo.id ? 'bg-muted' : 'hover:bg-muted/50'
-                }`}
-                onClick={() => setActiveConversationId(convo.id)}
-              >
-                <div className="flex justify-between items-start mb-1">
-                  <h3 className="font-semibold truncate flex-1">
-                    {convo.contact?.name || 'Sem nome'}
-                  </h3>
-                  <span className="text-xs text-muted-foreground ml-2">
-                    {formatTime(convo.lastMessageAt)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <p className="text-sm text-muted-foreground truncate flex-1">
-                    {convo.lastMessage || 'Sem mensagens'}
-                  </p>
-                  {convo.unreadCount > 0 && (
-                    <Badge className="ml-2">{convo.unreadCount}</Badge>
-                  )}
-                </div>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <Badge className={`${getChannelBadge(convo.channel)} text-white text-xs`}>
-                    {convo.channel}
-                  </Badge>
-                  <Badge className={`${getStatusBadge(convo.status)} text-white text-xs`}>
-                    {convo.status}
-                  </Badge>
-                </div>
-              </div>
-            ))
-          )}
+          <ConversationsList
+            isLoading={loadingConversations}
+            conversations={conversationSummaries}
+            activeConversationId={activeConversationId}
+            onSelect={setActiveConversationId}
+            formatTime={formatTime}
+            getChannelBadge={getChannelBadge}
+            getStatusBadge={getStatusBadge}
+          />
         </div>
       </aside>
 
@@ -342,125 +322,30 @@ export function AttendancePage() {
       <main className="flex-1 flex flex-col">
         {activeConversation ? (
           <>
-            <header className="p-4 border-b flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-sm font-semibold">
-                  {contactInitials}
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold">{activeContactName}</h3>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground capitalize">
-                    <Badge className={`${getChannelBadge(activeConversation.channel)} text-white text-xs`}>
-                      {activeConversation.channel}
-                    </Badge>
-                    <Badge className={`${getStatusBadge(activeConversation.status)} text-white text-xs`}>
-                      {activeConversation.status}
-                    </Badge>
-                    {isConnected ? (
-                      <span className="text-xs text-emerald-600">Online</span>
-                    ) : (
-                      <span className="text-xs text-red-500">Offline</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </header>
+            <ChatHeader
+              contactName={activeContactName}
+              contactInitials={contactInitials}
+              channel={activeConversation.channel}
+              status={activeConversation.status}
+              isConnected={isConnected}
+              getChannelBadge={getChannelBadge}
+              getStatusBadge={getStatusBadge}
+            />
 
             <div className="flex-1 p-4 overflow-y-auto bg-muted/20 space-y-4">
-              {loadingMessages ? (
-                <div className="flex items-center justify-center h-full">
-                  <Loader2 className="h-8 w-8 animate-spin" />
-                </div>
-              ) : messages.length === 0 ? (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  <p>Nenhuma mensagem ainda. Envie a primeira!</p>
-                </div>
-              ) : (
-                messages.map((msg) => {
-                  const isOutbound = msg.direction === 'outbound';
-                  const senderName = isOutbound ? msg.senderUser?.name || 'Você' : activeContactName;
-                  const senderInitials = initialsFromName(senderName);
-                  return (
-                    <div
-                      key={msg.id}
-                      className={`flex items-end gap-2 ${isOutbound ? 'justify-end' : 'justify-start'}`}
-                    >
-                      {!isOutbound && (
-                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-semibold">
-                          {senderInitials}
-                        </div>
-                      )}
-                      <div
-                        className={`rounded-lg p-3 max-w-lg ${
-                          isOutbound ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                        }`}
-                      >
-                        <p className="text-xs opacity-70 mb-1">{senderName}</p>
-                        <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                        <span className="text-xs opacity-70 mt-1 block text-right">
-                          {formatTime(msg.createdAt)}
-                        </span>
-                      </div>
-                      {isOutbound && (
-                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-semibold">
-                          {senderInitials}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
+              <MessagesList isLoading={loadingMessages} messages={messageItems} formatTime={formatTime} />
               <div ref={messagesEndRef} />
             </div>
 
-            <footer className="p-4 border-t space-y-3">
-              <div className="flex flex-wrap gap-2">
-                {quickReplies.map((reply) => (
-                  <button
-                    key={reply}
-                    type="button"
-                    className="text-xs rounded-full border px-3 py-1 hover:bg-muted"
-                    onClick={() => setMessageInput(reply)}
-                  >
-                    {reply}
-                  </button>
-                ))}
-              </div>
-              <div className="flex gap-2 items-end">
-                <div className="flex items-center gap-1">
-                  <Button type="button" variant="outline" size="icon">
-                    <Smile className="h-4 w-4" />
-                  </Button>
-                  <Button type="button" variant="outline" size="icon">
-                    <Paperclip className="h-4 w-4" />
-                  </Button>
-                  <Button type="button" variant="outline" size="icon">
-                    <Zap className="h-4 w-4" />
-                  </Button>
-                </div>
-                <textarea
-                  className="flex-1 bg-muted border rounded-lg p-2 resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="Digite sua mensagem..."
-                  rows={2}
-                  value={messageInput}
-                  onChange={(e) => setMessageInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  disabled={sendMessageMutation.isPending}
-                />
-                <Button
-                  onClick={handleSendMessage}
-                  disabled={!messageInput.trim() || sendMessageMutation.isPending}
-                  size="icon"
-                  className="self-end"
-                >
-                  {sendMessageMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-            </footer>
+            <MessageComposer
+              messageInput={messageInput}
+              onChange={setMessageInput}
+              onSend={handleSendMessage}
+              onKeyDown={handleKeyDown}
+              isSending={sendMessageMutation.isPending}
+              quickReplies={quickReplies}
+              onQuickReply={setMessageInput}
+            />
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
@@ -475,63 +360,14 @@ export function AttendancePage() {
         <div className="p-4 border-b">
           <h2 className="text-xl font-bold">Detalhes</h2>
         </div>
-        {activeConversation?.contact ? (
-          <div className="flex-1 p-4 space-y-6 overflow-y-auto">
-            <div className="text-center">
-              <div className="w-24 h-24 rounded-full bg-muted mx-auto mb-2 flex items-center justify-center">
-                <span className="text-3xl font-bold text-muted-foreground">
-                  {contactInitials}
-                </span>
-              </div>
-              <h3 className="text-lg font-semibold">{activeContactName}</h3>
-              <Badge className="mt-2 capitalize">{activeConversation.status}</Badge>
-            </div>
-            <div className="space-y-2">
-              <h4 className="font-semibold">Informações</h4>
-              {activeConversation.contact.email && (
-                <p className="text-sm">
-                  <strong>Email:</strong> {activeConversation.contact.email}
-                </p>
-              )}
-              {activeConversation.contact.phone && (
-                <p className="text-sm">
-                  <strong>Telefone:</strong> {activeConversation.contact.phone}
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <h4 className="font-semibold">Atalhos</h4>
-              <div className="grid gap-2">
-                <Button variant="outline" className="justify-start gap-2">
-                  <ArrowLeftRight className="h-4 w-4" /> Transferir
-                </Button>
-                <Button variant="outline" className="justify-start gap-2">
-                  <Calendar className="h-4 w-4" /> Agendar
-                </Button>
-                <Button variant="outline" className="justify-start gap-2">
-                  <ClipboardList className="h-4 w-4" /> Criar tarefa
-                </Button>
-                <Button variant="outline" className="justify-start gap-2">
-                  <Briefcase className="h-4 w-4" /> Oportunidade
-                </Button>
-                <Button variant="outline" className="justify-start gap-2">
-                  <Folder className="h-4 w-4" /> Arquivos
-                </Button>
-                <Button variant="outline" className="justify-start gap-2">
-                  <CheckCircle2 className="h-4 w-4" /> Finalizar atendimento
-                </Button>
-                <Button variant="outline" className="justify-start gap-2">
-                  <Inbox className="h-4 w-4" /> Enviar para fila
-                </Button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
-            <Info className="w-16 h-16 mb-4 opacity-50" />
-            <p>Selecione uma conversa para ver os detalhes</p>
-          </div>
-        )}
+        <DetailsPanel
+          hasConversation={!!activeConversation}
+          contactName={activeContactName}
+          contactInitials={contactInitials}
+          status={activeConversation?.status}
+          email={activeConversation?.contact?.email}
+          phone={activeConversation?.contact?.phone}
+        />
       </aside>
     </div>
   );
