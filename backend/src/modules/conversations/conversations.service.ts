@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Conversation } from './entities/conversation.entity';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
+import { ConversationsQueryDto } from './dto/conversations-query.dto';
 
 @Injectable()
 export class ConversationsService {
@@ -20,12 +21,39 @@ export class ConversationsService {
     return this.conversationsRepository.save(conversation);
   }
 
-  findAll(tenantId: string): Promise<Conversation[]> {
-    return this.conversationsRepository.find({ 
-      where: { tenantId },
-      relations: ['contact', 'assignedUser'],
-      order: { lastMessageAt: 'DESC' } 
-    });
+  async findAll(tenantId: string, filters: ConversationsQueryDto = {}): Promise<Conversation[]> {
+    const { status, assignedUserId, channelId, contactId, search } = filters;
+
+    const queryBuilder = this.conversationsRepository
+      .createQueryBuilder('conversation')
+      .leftJoinAndSelect('conversation.contact', 'contact')
+      .leftJoinAndSelect('conversation.assignedUser', 'assignedUser')
+      .where('conversation.tenantId = :tenantId', { tenantId });
+
+    if (status) {
+      queryBuilder.andWhere('conversation.status = :status', { status });
+    }
+
+    if (assignedUserId) {
+      queryBuilder.andWhere('conversation.assignedUserId = :assignedUserId', { assignedUserId });
+    }
+
+    if (channelId) {
+      queryBuilder.andWhere('conversation.channel = :channelId', { channelId });
+    }
+
+    if (contactId) {
+      queryBuilder.andWhere('conversation.contactId = :contactId', { contactId });
+    }
+
+    if (search) {
+      queryBuilder.andWhere(
+        '(contact.name ILIKE :search OR contact.email ILIKE :search OR contact.phone ILIKE :search OR conversation.lastMessage ILIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
+
+    return queryBuilder.orderBy('conversation.lastMessageAt', 'DESC', 'NULLS LAST').getMany();
   }
 
   async findOne(id: string, tenantId: string): Promise<Conversation> {

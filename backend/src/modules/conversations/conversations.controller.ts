@@ -1,9 +1,10 @@
 import { Controller, Get, Post, Body, Param, Delete, UseGuards, Patch, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { ConversationsService } from './conversations.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
+import { ConversationsQueryDto } from './dto/conversations-query.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserPayload } from '../../common/interfaces/user-payload.interface';
 
@@ -22,8 +23,13 @@ export class ConversationsController {
 
   @Get()
   @ApiOperation({ summary: 'Listar todas as conversas do tenant' })
-  findAll(@CurrentUser() user: UserPayload) {
-    return this.conversationsService.findAll(user.tenantId);
+  @ApiQuery({ name: 'status', required: false, enum: ['open', 'pending', 'closed'] })
+  @ApiQuery({ name: 'assignedUserId', required: false })
+  @ApiQuery({ name: 'channelId', required: false })
+  @ApiQuery({ name: 'contactId', required: false })
+  @ApiQuery({ name: 'search', required: false })
+  findAll(@CurrentUser() user: UserPayload, @Query() query: ConversationsQueryDto) {
+    return this.conversationsService.findAll(user.tenantId, query);
   }
 
   @Get(':id')
