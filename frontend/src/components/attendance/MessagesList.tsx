@@ -47,8 +47,10 @@ export function MessagesList({ isLoading, messages, formatTime }: MessagesListPr
               </div>
             )}
             <div
-              className={`rounded-lg p-3 max-w-lg ${
-                isOutbound ? 'bg-primary text-primary-foreground' : 'bg-muted'
+              className={`rounded-2xl p-3 max-w-lg shadow-sm border ${
+                isOutbound
+                  ? 'bg-primary text-primary-foreground border-primary/20'
+                  : 'bg-background border-muted'
               }`}
             >
               <p className="text-xs opacity-70 mb-1">{msg.senderName}</p>

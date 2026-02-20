@@ -39,14 +39,14 @@ export function DetailsPanel({
 
   return (
     <div className="flex-1 p-4 space-y-6 overflow-y-auto">
-      <div className="text-center">
-        <div className="w-24 h-24 rounded-full bg-muted mx-auto mb-2 flex items-center justify-center">
+      <div className="text-center rounded-2xl border bg-muted/20 p-4">
+        <div className="w-24 h-24 rounded-full bg-background mx-auto mb-2 flex items-center justify-center border">
           <span className="text-3xl font-bold text-muted-foreground">{contactInitials}</span>
         </div>
         <h3 className="text-lg font-semibold">{contactName}</h3>
         {status && <Badge className="mt-2 capitalize">{status}</Badge>}
       </div>
-      <div className="space-y-2">
+      <div className="space-y-2 rounded-2xl border bg-background p-4">
         <h4 className="font-semibold">Informações</h4>
         {email && (
           <p className="text-sm">
@@ -59,8 +59,8 @@ export function DetailsPanel({
           </p>
         )}
       </div>
-      <div className="space-y-2">
-        <h4 className="font-semibold">Atalhos</h4>
+      <div className="space-y-3 rounded-2xl border bg-background p-4">
+        <h4 className="font-semibold">Atalhos rápidos</h4>
         <div className="grid gap-2">
           <Button variant="outline" className="justify-start gap-2">
             <ArrowLeftRight className="h-4 w-4" /> Transferir

@@ -131,6 +131,8 @@ export function AttendancePage() {
   const queryClient = useQueryClient();
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [messageInput, setMessageInput] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'pending' | 'closed'>('all');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Query: Listar conversas
@@ -277,15 +279,38 @@ export function AttendancePage() {
   const activeContactName = activeConversation?.contact?.name || 'Sem nome';
   const contactInitials = initialsFromName(activeContactName);
 
-  const conversationSummaries: ConversationSummary[] = conversations.map((convo) => ({
-    id: convo.id,
-    contactName: convo.contact?.name || 'Sem nome',
-    channel: convo.channel,
-    status: convo.status,
-    lastMessage: convo.lastMessage,
-    lastMessageAt: convo.lastMessageAt,
-    unreadCount: convo.unreadCount,
-  }));
+  const conversationSummaries: ConversationSummary[] = conversations.map((convo) => {
+    const contactName = convo.contact?.name || 'Sem nome';
+    return {
+      id: convo.id,
+      contactName,
+      contactInitials: initialsFromName(contactName),
+      channel: convo.channel,
+      status: convo.status,
+      lastMessage: convo.lastMessage,
+      lastMessageAt: convo.lastMessageAt,
+      unreadCount: convo.unreadCount,
+    };
+  });
+
+  const statusCounts = conversationSummaries.reduce(
+    (acc, convo) => {
+      acc.total += 1;
+      if (convo.status === 'open') acc.open += 1;
+      if (convo.status === 'pending') acc.pending += 1;
+      if (convo.status === 'closed') acc.closed += 1;
+      return acc;
+    },
+    { total: 0, open: 0, pending: 0, closed: 0 }
+  );
+
+  const filteredConversations = conversationSummaries.filter((convo) => {
+    const matchesStatus = statusFilter === 'all' || convo.status === statusFilter;
+    const matchesSearch = !searchTerm
+      || convo.contactName.toLowerCase().includes(searchTerm.toLowerCase())
+      || convo.lastMessage?.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesStatus && matchesSearch;
+  });
 
   const messageItems: MessageItem[] = messages.map((msg) => {
     const isOutbound = msg.direction === 'outbound';
@@ -301,21 +326,64 @@ export function AttendancePage() {
   });
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] bg-background text-foreground">
+    <div className="flex h-[calc(100vh-4rem)] bg-gradient-to-br from-background via-background to-muted/30 text-foreground">
       {/* Coluna 1: Lista de Conversas */}
-      <aside className="w-80 border-r flex flex-col">
-        <div className="p-4 border-b flex justify-between items-center">
-          <h2 className="text-xl font-bold">Atendimento</h2>
-          {isConnected ? (
-            <Badge className="bg-green-500">Online</Badge>
-          ) : (
-            <Badge variant="destructive">Offline</Badge>
-          )}
+      <aside className="w-80 border-r bg-background/80 backdrop-blur flex flex-col">
+        <div className="p-4 border-b space-y-3">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-xl font-bold">Atendimento</h2>
+              <p className="text-xs text-muted-foreground">Omnichannel em tempo real</p>
+            </div>
+            {isConnected ? (
+              <Badge className="bg-emerald-500">Online</Badge>
+            ) : (
+              <Badge variant="destructive">Offline</Badge>
+            )}
+          </div>
+          <div className="space-y-2">
+            <input
+              className="w-full rounded-lg border bg-muted/40 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
+              placeholder="Buscar por cliente ou mensagem..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <div className="flex flex-wrap gap-2 text-xs">
+              <button
+                type="button"
+                className={`rounded-full px-3 py-1 border ${statusFilter === 'all' ? 'bg-primary text-primary-foreground border-primary' : 'hover:bg-muted'}`}
+                onClick={() => setStatusFilter('all')}
+              >
+                Todos ({statusCounts.total})
+              </button>
+              <button
+                type="button"
+                className={`rounded-full px-3 py-1 border ${statusFilter === 'open' ? 'bg-emerald-500 text-white border-emerald-500' : 'hover:bg-muted'}`}
+                onClick={() => setStatusFilter('open')}
+              >
+                Abertos ({statusCounts.open})
+              </button>
+              <button
+                type="button"
+                className={`rounded-full px-3 py-1 border ${statusFilter === 'pending' ? 'bg-amber-500 text-white border-amber-500' : 'hover:bg-muted'}`}
+                onClick={() => setStatusFilter('pending')}
+              >
+                Pendentes ({statusCounts.pending})
+              </button>
+              <button
+                type="button"
+                className={`rounded-full px-3 py-1 border ${statusFilter === 'closed' ? 'bg-slate-500 text-white border-slate-500' : 'hover:bg-muted'}`}
+                onClick={() => setStatusFilter('closed')}
+              >
+                Fechados ({statusCounts.closed})
+              </button>
+            </div>
+          </div>
         </div>
         <div className="flex-1 overflow-y-auto">
           <ConversationsList
             isLoading={loadingConversations}
-            conversations={conversationSummaries}
+            conversations={filteredConversations}
             activeConversationId={activeConversationId}
             onSelect={setActiveConversationId}
             formatTime={formatTime}

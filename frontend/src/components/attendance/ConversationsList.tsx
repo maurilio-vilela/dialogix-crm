@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 export interface ConversationSummary {
   id: string;
   contactName: string;
+  contactInitials: string;
   channel: string;
   status: string;
   lastMessage?: string;
@@ -53,29 +54,42 @@ export function ConversationsList({
         <div
           key={convo.id}
           className={`p-4 border-b cursor-pointer transition-colors ${
-            activeConversationId === convo.id ? 'bg-muted' : 'hover:bg-muted/50'
+            activeConversationId === convo.id
+              ? 'bg-muted/70'
+              : 'hover:bg-muted/40'
           }`}
           onClick={() => onSelect(convo.id)}
         >
-          <div className="flex justify-between items-start mb-1">
-            <h3 className="font-semibold truncate flex-1">{convo.contactName}</h3>
-            <span className="text-xs text-muted-foreground ml-2">
-              {formatTime(convo.lastMessageAt)}
-            </span>
-          </div>
-          <div className="flex justify-between items-center">
-            <p className="text-sm text-muted-foreground truncate flex-1">
-              {convo.lastMessage || 'Sem mensagens'}
-            </p>
-            {convo.unreadCount > 0 && <Badge className="ml-2">{convo.unreadCount}</Badge>}
-          </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <Badge className={`${getChannelBadge(convo.channel)} text-white text-xs`}>
-              {convo.channel}
-            </Badge>
-            <Badge className={`${getStatusBadge(convo.status)} text-white text-xs`}>
-              {convo.status}
-            </Badge>
+          <div className="flex gap-3 items-start">
+            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-sm font-semibold">
+              {convo.contactInitials}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex justify-between items-start mb-1">
+                <h3 className="font-semibold truncate flex-1">{convo.contactName}</h3>
+                <span className="text-xs text-muted-foreground ml-2">
+                  {formatTime(convo.lastMessageAt)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <p className="text-sm text-muted-foreground truncate flex-1">
+                  {convo.lastMessage || 'Sem mensagens'}
+                </p>
+                {convo.unreadCount > 0 && (
+                  <Badge className="ml-2 bg-primary text-primary-foreground">
+                    {convo.unreadCount}
+                  </Badge>
+                )}
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Badge className={`${getChannelBadge(convo.channel)} text-white text-xs`}>
+                  {convo.channel}
+                </Badge>
+                <Badge className={`${getStatusBadge(convo.status)} text-white text-xs`}>
+                  {convo.status}
+                </Badge>
+              </div>
+            </div>
           </div>
         </div>
       ))}

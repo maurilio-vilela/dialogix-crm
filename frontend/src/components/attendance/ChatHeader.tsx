@@ -20,7 +20,7 @@ export function ChatHeader({
   getStatusBadge,
 }: ChatHeaderProps) {
   return (
-    <header className="p-4 border-b flex items-center justify-between">
+    <header className="p-4 border-b bg-background/80 backdrop-blur flex items-center justify-between">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-sm font-semibold">
           {contactInitials}

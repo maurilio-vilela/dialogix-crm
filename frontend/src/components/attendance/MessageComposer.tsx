@@ -22,7 +22,7 @@ export function MessageComposer({
   onQuickReply,
 }: MessageComposerProps) {
   return (
-    <footer className="p-4 border-t space-y-3">
+    <footer className="p-4 border-t bg-background/80 backdrop-blur space-y-3">
       <QuickReplies replies={quickReplies} onSelect={onQuickReply} />
       <div className="flex gap-2 items-end">
         <div className="flex items-center gap-1">
@@ -37,7 +37,7 @@ export function MessageComposer({
           </Button>
         </div>
         <textarea
-          className="flex-1 bg-muted border rounded-lg p-2 resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+          className="flex-1 bg-muted/60 border rounded-xl p-3 resize-none focus:outline-none focus:ring-2 focus:ring-primary min-h-[56px]"
           placeholder="Digite sua mensagem..."
           rows={2}
           value={messageInput}
@@ -48,10 +48,15 @@ export function MessageComposer({
         <Button
           onClick={onSend}
           disabled={!messageInput.trim() || isSending}
-          size="icon"
-          className="self-end"
+          className="self-end rounded-full px-4"
         >
-          {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          {isSending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <span className="flex items-center gap-2 text-sm">
+              Enviar <Send className="h-4 w-4" />
+            </span>
+          )}
         </Button>
       </div>
     </footer>
