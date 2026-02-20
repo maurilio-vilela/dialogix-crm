@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { MessageSquare, Info, Send, Loader2 } from 'lucide-react';
@@ -7,9 +7,29 @@ import { Badge } from '@/components/ui/badge';
 import api from '@/lib/axios';
 import { toast } from 'react-hot-toast';
 
+interface ApiConversation {
+  id: string;
+  contact_id?: string;
+  contactId?: string;
+  contact?: {
+    id: string;
+    name: string;
+    email?: string;
+    phone?: string;
+  };
+  channel?: { id?: string; name?: string; type?: string } | string;
+  status: string;
+  last_message?: { content?: string; created_at?: string };
+  last_message_at?: string;
+  last_message_preview?: string;
+  lastMessage?: string;
+  lastMessageAt?: string;
+  unread_count?: number;
+  unreadCount?: number;
+}
+
 interface Conversation {
   id: string;
-  contactId?: string;
   contact?: {
     id: string;
     name: string;
@@ -21,6 +41,27 @@ interface Conversation {
   lastMessage?: string;
   lastMessageAt?: string;
   unreadCount: number;
+}
+
+interface ApiMessage {
+  id: string;
+  conversation_id?: string;
+  conversationId?: string;
+  sender_user?: {
+    id: string;
+    name: string;
+  };
+  senderUser?: {
+    id: string;
+    name: string;
+  };
+  direction: 'inbound' | 'outbound';
+  content_type?: string;
+  type?: string;
+  content?: string;
+  body?: string;
+  created_at?: string;
+  createdAt?: string;
 }
 
 interface Message {
@@ -36,37 +77,6 @@ interface Message {
   createdAt: string;
 }
 
-interface ApiConversation {
-  id: string;
-  contact_id?: string;
-  contactId?: string;
-  contact?: Conversation['contact'];
-  channel?: { id?: string; name?: string; type?: string } | string;
-  status: string;
-  last_message?: { content?: string; created_at?: string };
-  last_message_at?: string;
-  last_message_preview?: string;
-  lastMessage?: string;
-  lastMessageAt?: string;
-  unread_count?: number;
-  unreadCount?: number;
-}
-
-interface ApiMessage {
-  id: string;
-  conversation_id?: string;
-  conversationId?: string;
-  sender_user?: Message['senderUser'];
-  senderUser?: Message['senderUser'];
-  direction: 'inbound' | 'outbound';
-  content_type?: string;
-  type?: string;
-  content?: string;
-  body?: string;
-  created_at?: string;
-  createdAt?: string;
-}
-
 const normalizeConversation = (convo: ApiConversation): Conversation => {
   const channelType =
     typeof convo.channel === 'string'
@@ -77,7 +87,6 @@ const normalizeConversation = (convo: ApiConversation): Conversation => {
 
   return {
     id: convo.id,
-    contactId: convo.contact_id || convo.contactId || convo.contact?.id,
     contact: convo.contact,
     channel: normalizedChannel,
     status: convo.status,
@@ -110,7 +119,6 @@ export function AttendancePage() {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [messageInput, setMessageInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const socketToastRef = useRef(false);
 
   // Query: Listar conversas
   const { data: conversations = [], isLoading: loadingConversations } = useQuery<Conversation[]>({
@@ -175,33 +183,17 @@ export function AttendancePage() {
   });
 
   useEffect(() => {
-    if (!socketToastRef.current) {
-      socketToastRef.current = true;
-      return;
-    }
-    if (isConnected) {
-      toast.success('Conectado ao tempo real');
-    } else {
-      toast.error('Desconectado do tempo real');
-    }
-  }, [isConnected]);
+    const handleNewMessage = (payload: ApiMessage) => {
+      console.log('📨 Nova mensagem recebida via WebSocket:', payload);
+      const normalized = normalizeMessage(payload);
 
-  useEffect(() => {
-    const handleNewMessage = (data: ApiMessage) => {
-      console.log('📨 Nova mensagem recebida via WebSocket:', data);
-
-      const normalized = normalizeMessage(data);
-
-      // Se a mensagem é da conversa ativa, adicionar à lista
       if (normalized.conversationId === activeConversationId) {
         queryClient.setQueryData(['messages', activeConversationId], (old: Message[] = []) => {
-          // Evitar duplicatas
-          if (old.some(m => m.id === normalized.id)) return old;
+          if (old.some((m) => m.id === normalized.id)) return old;
           return [...old, normalized];
         });
       }
 
-      // Atualizar a lista de conversas
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     };
 
@@ -234,10 +226,15 @@ export function AttendancePage() {
     }
   };
 
-  const activeConversation = conversations.find(c => c.id === activeConversationId);
+  const activeConversation = useMemo(
+    () => conversations.find((c) => c.id === activeConversationId),
+    [conversations, activeConversationId]
+  );
 
-  const formatTime = (date: string) => {
+  const formatTime = (date?: string) => {
+    if (!date) return '';
     const d = new Date(date);
+    if (Number.isNaN(d.getTime())) return '';
     const now = new Date();
     const diff = now.getTime() - d.getTime();
     const hours = diff / (1000 * 60 * 60);
@@ -246,9 +243,8 @@ export function AttendancePage() {
       return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     } else if (hours < 48) {
       return 'Ontem';
-    } else {
-      return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
     }
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
   };
 
   const getChannelBadge = (channel: string) => {
@@ -260,6 +256,15 @@ export function AttendancePage() {
       webchat: 'bg-purple-500',
     };
     return colors[channel] || 'bg-gray-500';
+  };
+
+  const getStatusBadge = (status: string) => {
+    const colors: Record<string, string> = {
+      open: 'bg-emerald-500',
+      pending: 'bg-amber-500',
+      closed: 'bg-slate-500',
+    };
+    return colors[status] || 'bg-slate-500';
   };
 
   const formatChannelLabel = (channel: string) => {
@@ -300,7 +305,7 @@ export function AttendancePage() {
               <p className="text-sm">Nenhuma conversa ainda</p>
             </div>
           ) : (
-            conversations.map(convo => (
+            conversations.map((convo) => (
               <div
                 key={convo.id}
                 className={`p-4 border-b cursor-pointer transition-colors ${
@@ -313,7 +318,7 @@ export function AttendancePage() {
                     {convo.contact?.name || 'Sem nome'}
                   </h3>
                   <span className="text-xs text-muted-foreground ml-2">
-                    {convo.lastMessageAt ? formatTime(convo.lastMessageAt) : ''}
+                    {formatTime(convo.lastMessageAt)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -326,9 +331,12 @@ export function AttendancePage() {
                     </Badge>
                   )}
                 </div>
-                <div className="mt-2">
+                <div className="mt-2 flex flex-wrap gap-2">
                   <Badge className={`${getChannelBadge(convo.channel)} text-white text-xs capitalize`}>
                     {formatChannelLabel(convo.channel)}
+                  </Badge>
+                  <Badge className={`${getStatusBadge(convo.status)} text-white text-xs capitalize`}>
+                    {convo.status}
                   </Badge>
                 </div>
               </div>
@@ -346,9 +354,14 @@ export function AttendancePage() {
                 <h3 className="text-lg font-semibold">
                   {activeConversation.contact?.name || 'Sem nome'}
                 </h3>
-                <span className="text-sm text-muted-foreground capitalize">
-                  {formatChannelLabel(activeConversation.channel)} • {activeConversation.status}
-                </span>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground capitalize">
+                  <Badge className={`${getChannelBadge(activeConversation.channel)} text-white text-xs`}>
+                    {formatChannelLabel(activeConversation.channel)}
+                  </Badge>
+                  <Badge className={`${getStatusBadge(activeConversation.status)} text-white text-xs`}>
+                    {activeConversation.status}
+                  </Badge>
+                </div>
               </div>
             </header>
 
@@ -372,7 +385,7 @@ export function AttendancePage() {
                   <p>Nenhuma mensagem ainda. Envie a primeira!</p>
                 </div>
               ) : (
-                messages.map(msg => (
+                messages.map((msg) => (
                   <div
                     key={msg.id}
                     className={`flex ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}
@@ -405,7 +418,7 @@ export function AttendancePage() {
                   placeholder="Digite sua mensagem..."
                   rows={2}
                   value={messageInput}
-                  onChange={e => setMessageInput(e.target.value)}
+                  onChange={(e) => setMessageInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   disabled={sendMessageMutation.isPending}
                 />
@@ -446,7 +459,7 @@ export function AttendancePage() {
                 </span>
               </div>
               <h3 className="text-lg font-semibold">{activeConversation.contact.name}</h3>
-              <Badge className="mt-2">{activeConversation.status}</Badge>
+              <Badge className="mt-2 capitalize">{activeConversation.status}</Badge>
             </div>
             <div className="space-y-2">
               <h4 className="font-semibold">Informações</h4>

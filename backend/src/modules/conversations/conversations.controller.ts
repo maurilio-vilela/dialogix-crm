@@ -25,7 +25,7 @@ export class ConversationsController {
   @ApiOperation({ summary: 'Listar todas as conversas do tenant' })
   @ApiQuery({ name: 'status', required: false, enum: ['open', 'pending', 'closed'] })
   @ApiQuery({ name: 'assignedUserId', required: false })
-  @ApiQuery({ name: 'channelId', required: false })
+  @ApiQuery({ name: 'channel', required: false, enum: ['whatsapp', 'instagram', 'telegram', 'email', 'webchat'] })
   @ApiQuery({ name: 'contactId', required: false })
   @ApiQuery({ name: 'search', required: false })
   findAll(@CurrentUser() user: UserPayload, @Query() query: ConversationsQueryDto) {

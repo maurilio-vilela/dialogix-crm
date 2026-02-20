@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { MessagesService } from './messages.service';
@@ -19,11 +19,11 @@ export class MessagesController {
     return this.messagesService.create(user.tenantId, user.userId, createMessageDto);
   }
 
-  @Get('conversation/:conversationId')
+  @Get('conversation/:id')
   @ApiOperation({ summary: 'Listar todas as mensagens de uma conversa' })
   findAllByConversation(
     @CurrentUser() user: UserPayload,
-    @Param('conversationId') conversationId: string,
+    @Param('id') conversationId: string,
   ) {
     // A validação de tenant ocorre no service
     return this.messagesService.findAllByConversation(conversationId, user.tenantId);

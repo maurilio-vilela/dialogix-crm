@@ -21,8 +21,8 @@ export class ConversationsService {
     return this.conversationsRepository.save(conversation);
   }
 
-  async findAll(tenantId: string, filters: ConversationsQueryDto = {}): Promise<Conversation[]> {
-    const { status, assignedUserId, channelId, contactId, search } = filters;
+  async findAll(tenantId: string, filters: ConversationsQueryDto = {}): Promise<any[]> {
+    const { status, assignedUserId, channel, contactId, search } = filters;
 
     const queryBuilder = this.conversationsRepository
       .createQueryBuilder('conversation')
@@ -38,8 +38,8 @@ export class ConversationsService {
       queryBuilder.andWhere('conversation.assignedUserId = :assignedUserId', { assignedUserId });
     }
 
-    if (channelId) {
-      queryBuilder.andWhere('conversation.channel = :channelId', { channelId });
+    if (channel) {
+      queryBuilder.andWhere('conversation.channel = :channel', { channel });
     }
 
     if (contactId) {
@@ -53,7 +53,16 @@ export class ConversationsService {
       );
     }
 
-    return queryBuilder.orderBy('conversation.lastMessageAt', 'DESC', 'NULLS LAST').getMany();
+    const conversations = await queryBuilder
+      .orderBy('conversation.lastMessageAt', 'DESC', 'NULLS LAST')
+      .addOrderBy('conversation.updatedAt', 'DESC')
+      .getMany();
+
+    return conversations.map((conversation) => ({
+      ...conversation,
+      last_message: conversation.lastMessage ?? null,
+      last_message_at: conversation.lastMessageAt ?? null,
+    }));
   }
 
   async findOne(id: string, tenantId: string): Promise<Conversation> {
@@ -73,7 +82,16 @@ export class ConversationsService {
   }
 
   async updateLastMessage(id: string, tenantId: string, lastMessage: string, lastMessageAt: Date): Promise<void> {
-    const result = await this.conversationsRepository.update({ id, tenantId }, { lastMessage, lastMessageAt });
+    const normalizedLastMessage = (lastMessage || '').trim();
+
+    const result = await this.conversationsRepository.update(
+      { id, tenantId },
+      {
+        lastMessage: normalizedLastMessage.length > 0 ? normalizedLastMessage : null,
+        lastMessageAt: lastMessageAt || new Date(),
+      },
+    );
+
     if (!result.affected) {
       throw new NotFoundException(`Conversation #${id} not found`);
     }
