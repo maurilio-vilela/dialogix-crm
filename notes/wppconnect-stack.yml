@@ -2,18 +2,23 @@ version: "3.8"
 
 services:
   wppconnect:
-    image: wppconnect-team/wppconnect-server:latest
+    build:
+      context: ./wppconnect
+      dockerfile: Dockerfile
+    image: dialogix-wppconnect:latest
     environment:
       - PORT=21465
-      - SECRET_KEY_FILE=/run/secrets/wpp_secret_key
-      - HOST=https://wppconnect.dialogix.com.br
+      - WPP_PORT=21465
+      - WPP_HOST=https://wppconnect.dialogix.com.br
+      - WPP_WEBHOOK_URL=https://api-dev.dialogix.com.br/api/v1/channels/whatsapp/webhook
+      - WPP_SECRET_KEY_FILE=/run/secrets/wpp_secret_key
     secrets:
       - wpp_secret_key
     networks:
       - traefik-public
     volumes:
-      - wppconnect-data:/usr/src/app/tokens
-      - wppconnect-userdata:/usr/src/app/userDataDir
+      - wppconnect-data:/home/node/app/tokens
+      - wppconnect-userdata:/home/node/app/userDataDir
     deploy:
       replicas: 1
       restart_policy:
