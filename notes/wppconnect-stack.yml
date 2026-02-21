@@ -8,8 +8,8 @@ services:
     image: dialogix-wppconnect:latest
     environment:
       - PORT=21465
-      - WPP_PORT=21465
-      - WPP_HOST=http://localhost
+      - WPP_PORT=443
+      - WPP_HOST=https://wppconnect.dialogix.com.br
       - WPP_WEBHOOK_URL=https://api-dev.dialogix.com.br/api/v1/channels/whatsapp/webhook
       - WPP_SECRET_KEY_FILE=/run/secrets/wpp_secret_key
     secrets:
