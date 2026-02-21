@@ -92,10 +92,14 @@ export async function initialSeed() {
     `);
 
     if (whatsappTableExists) {
+      console.log('📱 Creating WhatsApp session seed...');
       await queryRunner.query(`
         INSERT INTO whatsapp_sessions (tenant_id, session_id, status, phone_number, display_name, last_update_at, last_heartbeat_at)
         VALUES ($1, $2, 'connected', '+5511987654321', 'WhatsApp Principal', NOW(), NOW())
       `, [tenantId, `tenant-${tenantId}`]);
+      console.log('✅ WhatsApp session seed created');
+    } else {
+      console.log('⚠️  whatsapp_sessions table not found. Skipping WhatsApp session seed.');
     }
 
     // 6. Create Tags
