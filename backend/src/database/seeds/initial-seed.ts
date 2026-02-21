@@ -15,7 +15,7 @@ export async function initialSeed() {
     console.log('🧹 Cleaning up old data...');
     await queryRunner.query(`
       TRUNCATE TABLE
-        tenants, users, contacts, channels, tags, pipelines, pipeline_stages, deals, quick_replies, conversations, messages
+        tenants, users, contacts, channels, tags, pipelines, pipeline_stages, deals, quick_replies, conversations, messages, whatsapp_sessions
       RESTART IDENTITY CASCADE
     `);
     console.log('✅ Old data cleaned');
@@ -80,6 +80,12 @@ export async function initialSeed() {
     `, [tenantId]);
     const channelId = channelResult[0].id;
     console.log(`✅ Channel created: ${channelId}`);
+
+    // 5.1 Create WhatsApp session
+    await queryRunner.query(`
+      INSERT INTO whatsapp_sessions (tenant_id, session_id, status, phone_number, display_name, last_update_at, last_heartbeat_at)
+      VALUES ($1, $2, 'connected', '+5511987654321', 'WhatsApp Principal', NOW(), NOW())
+    `, [tenantId, `tenant-${tenantId}`]);
 
     // 6. Create Tags
     console.log('🏷️  Creating tags...');

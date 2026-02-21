@@ -36,6 +36,7 @@
 ## ✅ Concluído (Backend — parcial)
 - Mapeamento de status ampliado para estados de conexão (onstatechange).
 - Migration da tabela `whatsapp_sessions`.
+- Seed atualizado para criar sessão WhatsApp demo.
 
 ## ⏳ Pendente
 ### Backend (WPPConnect)
