@@ -222,7 +222,7 @@ export class WhatsAppService {
     }
 
     const tenantId = stored.tenantId;
-    const status = this.mapStatus(payload.status ?? payload.event) ?? stored.status;
+    const status = this.mapStatus(payload.status ?? payload.event ?? payload?.payload?.state) ?? stored.status;
     const mapped = this.mergeSession(tenantId, {
       sessionId,
       status,
@@ -410,6 +410,9 @@ export class WhatsAppService {
     return (
       payload?.session ||
       payload?.sessionId ||
+      payload?.payload?.session ||
+      payload?.payload?.sessionId ||
+      payload?.payload?.instance ||
       payload?.data?.session ||
       payload?.data?.sessionId ||
       payload?.data?.instance
@@ -417,11 +420,21 @@ export class WhatsAppService {
   }
 
   private extractPhone(payload: WppConnectWebhookPayload) {
-    return payload?.phone || payload?.data?.phone || payload?.sender?.id;
+    const nested = payload?.payload || payload?.data || {};
+    return payload?.phone || nested?.phone || nested?.from || payload?.sender?.id || nested?.sender?.id;
   }
 
   private extractDisplayName(payload: WppConnectWebhookPayload) {
-    return payload?.displayName || payload?.data?.displayName || payload?.sender?.name;
+    const nested = payload?.payload || payload?.data || {};
+    return (
+      payload?.displayName ||
+      nested?.displayName ||
+      nested?.notifyName ||
+      payload?.sender?.pushname ||
+      payload?.sender?.name ||
+      nested?.sender?.pushname ||
+      nested?.sender?.name
+    );
   }
 
   private mapStatus(status?: string): WhatsAppChannelStatus | null {

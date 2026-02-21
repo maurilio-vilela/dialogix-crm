@@ -8,7 +8,9 @@ export interface WppConnectWebhookPayload {
   sender?: {
     id?: string;
     name?: string;
+    pushname?: string;
   };
+  payload?: Record<string, any>;
   data?: Record<string, any>;
   [key: string]: any;
 }

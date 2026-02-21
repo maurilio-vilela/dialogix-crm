@@ -30,11 +30,13 @@
 - Webhook `/channels/whatsapp/webhook` para atualizar status em tempo real.
 - Fetch opcional de device info ao conectar (host-device).
 
+## ✅ Concluído (Backend — parcial)
+- Parser do webhook ajustado para payload real (event/onmessage + payload nested).
+
 ## ⏳ Pendente
 ### Backend (WPPConnect)
 - Validar mapeamento de status + campos reais do WPPConnect.
 - Ajustar captura de número/nome do perfil quando WPPConnect expor.
-- Validar payload real do webhook e ajustar parser.
 
 ## 🧭 Próximos passos sugeridos
 1. Levantar estrutura de backend existente e padrão de módulos.
