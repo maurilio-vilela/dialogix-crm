@@ -26,11 +26,14 @@
 - Persistência mínima da sessão em tabela `whatsapp_sessions`.
 - Variáveis de ambiente adicionadas em `.env.example`.
 
+## ✅ Concluído (Backend — parcial)
+- Webhook `/channels/whatsapp/webhook` para atualizar status em tempo real.
+
 ## ⏳ Pendente
 ### Backend (WPPConnect)
 - Validar mapeamento de status + campos reais do WPPConnect.
 - Ajustar captura de número/nome do perfil quando WPPConnect expor.
-- Garantir mudança para **connected** via eventos reais (webhook/polling).
+- Validar payload real do webhook e ajustar parser.
 
 ## 🧭 Próximos passos sugeridos
 1. Levantar estrutura de backend existente e padrão de módulos.

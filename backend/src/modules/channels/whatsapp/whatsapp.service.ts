@@ -6,6 +6,7 @@ import { Repository } from 'typeorm';
 import { v4 as uuid } from 'uuid';
 import { Channel, ChannelStatus, ChannelType } from '../entities/channel.entity';
 import { WhatsAppSession } from './entities/whatsapp-session.entity';
+import { WppConnectWebhookPayload } from './whatsapp.webhook.dto';
 
 export type WhatsAppChannelStatus =
   | 'disconnected'
@@ -197,6 +198,50 @@ export class WhatsAppService {
     };
   }
 
+  async handleWebhook(payload: WppConnectWebhookPayload) {
+    const sessionId = this.extractSessionId(payload);
+
+    if (!sessionId) {
+      this.logger.warn('Webhook recebido sem sessionId');
+      return { received: true };
+    }
+
+    const stored = await this.sessionsRepository.findOne({ where: { sessionId } });
+    if (!stored) {
+      this.logger.warn(`Webhook para sessão desconhecida: ${sessionId}`);
+      return { received: true };
+    }
+
+    const tenantId = stored.tenantId;
+    const status = this.mapStatus(payload.status ?? payload.event) ?? stored.status;
+    const mapped = this.mergeSession(tenantId, {
+      sessionId,
+      status,
+      phone: this.extractPhone(payload) ?? stored.phoneNumber ?? undefined,
+      displayName: this.extractDisplayName(payload) ?? stored.displayName ?? undefined,
+      lastHeartbeatAt: new Date().toISOString(),
+      lastUpdateAt: new Date().toISOString(),
+      errorMessage: payload?.message ?? stored.errorMessage ?? undefined,
+    });
+
+    await this.persistSession(tenantId, mapped);
+
+    if (status === 'connected') {
+      await this.upsertChannel(tenantId, {
+        status: ChannelStatus.CONNECTED,
+        phoneNumber: mapped.phone ?? undefined,
+      });
+    }
+
+    if (status === 'disconnected') {
+      await this.upsertChannel(tenantId, {
+        status: ChannelStatus.DISCONNECTED,
+      });
+    }
+
+    return { received: true };
+  }
+
   private async findOrCreateChannel(tenantId: string) {
     const existing = await this.channelsRepository.findOne({
       where: { tenantId, type: ChannelType.WHATSAPP },
@@ -336,6 +381,24 @@ export class WhatsAppService {
         'Content-Type': 'application/json',
       },
     });
+  }
+
+  private extractSessionId(payload: WppConnectWebhookPayload) {
+    return (
+      payload?.session ||
+      payload?.sessionId ||
+      payload?.data?.session ||
+      payload?.data?.sessionId ||
+      payload?.data?.instance
+    );
+  }
+
+  private extractPhone(payload: WppConnectWebhookPayload) {
+    return payload?.phone || payload?.data?.phone || payload?.sender?.id;
+  }
+
+  private extractDisplayName(payload: WppConnectWebhookPayload) {
+    return payload?.displayName || payload?.data?.displayName || payload?.sender?.name;
   }
 
   private mapStatus(status?: string): WhatsAppChannelStatus | null {

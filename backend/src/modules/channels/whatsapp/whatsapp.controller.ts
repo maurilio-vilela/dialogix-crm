@@ -1,9 +1,10 @@
-import { Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { WhatsAppService } from './whatsapp.service';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { UserPayload } from '../../../common/interfaces/user-payload.interface';
+import { WppConnectWebhookPayload } from './whatsapp.webhook.dto';
 
 @ApiTags('channels')
 @ApiBearerAuth()
@@ -40,5 +41,11 @@ export class WhatsAppController {
   @ApiOperation({ summary: 'Obter QR Code da sessão WhatsApp' })
   getQrCode(@CurrentUser() user: UserPayload) {
     return this.whatsappService.getQrCode(user.tenantId);
+  }
+
+  @Post('webhook')
+  @ApiOperation({ summary: 'Webhook WPPConnect' })
+  webhook(@Body() payload: WppConnectWebhookPayload) {
+    return this.whatsappService.handleWebhook(payload);
   }
 }
