@@ -28,6 +28,7 @@
 
 ## ✅ Concluído (Backend — parcial)
 - Webhook `/channels/whatsapp/webhook` para atualizar status em tempo real.
+- Fetch opcional de device info ao conectar (host-device).
 
 ## ⏳ Pendente
 ### Backend (WPPConnect)

@@ -151,6 +151,15 @@ export class WhatsAppService {
     await this.persistSession(tenantId, mapped);
 
     if (status === 'connected') {
+      if (!mapped.phone || !mapped.displayName) {
+        const device = await this.fetchDeviceInfo(sessionId);
+        if (device?.phone || device?.displayName) {
+          mapped.phone = device.phone ?? mapped.phone;
+          mapped.displayName = device.displayName ?? mapped.displayName;
+          await this.persistSession(tenantId, mapped);
+        }
+      }
+
       await this.upsertChannel(tenantId, {
         status: ChannelStatus.CONNECTED,
         phoneNumber: mapped.phone ?? channel.phoneNumber ?? undefined,
@@ -381,6 +390,20 @@ export class WhatsAppService {
         'Content-Type': 'application/json',
       },
     });
+  }
+
+  private async fetchDeviceInfo(sessionId: string) {
+    try {
+      const response = await this.callWppConnect('get', `/api/${sessionId}/host-device`);
+      const data = response?.data || {};
+      return {
+        phone: data?.wid || data?.phone || data?.number,
+        displayName: data?.pushname || data?.displayName || data?.name,
+      };
+    } catch (error) {
+      this.logger.warn(`Não foi possível obter device info para ${sessionId}`);
+      return null;
+    }
   }
 
   private extractSessionId(payload: WppConnectWebhookPayload) {
