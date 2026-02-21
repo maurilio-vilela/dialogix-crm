@@ -222,7 +222,9 @@ export class WhatsAppService {
     }
 
     const tenantId = stored.tenantId;
-    const status = this.mapStatus(payload.status ?? payload.event ?? payload?.payload?.state) ?? stored.status;
+    const status =
+      this.mapStatus(payload.status ?? payload.event ?? payload?.payload?.state) ??
+      (stored.status as WhatsAppChannelStatus);
     const mapped = this.mergeSession(tenantId, {
       sessionId,
       status,
