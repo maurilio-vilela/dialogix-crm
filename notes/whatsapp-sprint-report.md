@@ -33,9 +33,12 @@
 ## ✅ Concluído (Backend — parcial)
 - Parser do webhook ajustado para payload real (event/onmessage + payload nested).
 
+## ✅ Concluído (Backend — parcial)
+- Mapeamento de status ampliado para estados de conexão (onstatechange).
+
 ## ⏳ Pendente
 ### Backend (WPPConnect)
-- Validar mapeamento de status + campos reais do WPPConnect.
+- Validar mapeamento de status + campos reais do WPPConnect em produção.
 - Ajustar captura de número/nome do perfil quando WPPConnect expor.
 
 ## 🧭 Próximos passos sugeridos

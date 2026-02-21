@@ -441,19 +441,39 @@ export class WhatsAppService {
     if (!status) return null;
 
     const normalized = status.toLowerCase();
-    if (normalized.includes('connect') || normalized.includes('open')) {
+
+    if (
+      normalized === 'connected' ||
+      normalized === 'open' ||
+      normalized.includes('connected') ||
+      normalized.includes('open')
+    ) {
       return 'connected';
     }
-    if (normalized.includes('qr')) {
+
+    if (normalized.includes('qr') || normalized.includes('qrcode') || normalized.includes('scan')) {
       return 'qr_pending';
     }
-    if (normalized.includes('init') || normalized.includes('start')) {
+
+    if (
+      normalized.includes('init') ||
+      normalized.includes('start') ||
+      normalized.includes('opening') ||
+      normalized.includes('loading')
+    ) {
       return 'connecting';
     }
-    if (normalized.includes('close') || normalized.includes('disconnect')) {
+
+    if (
+      normalized.includes('close') ||
+      normalized.includes('disconnect') ||
+      normalized.includes('unpaired') ||
+      normalized.includes('logout')
+    ) {
       return 'disconnected';
     }
-    if (normalized.includes('error')) {
+
+    if (normalized.includes('error') || normalized.includes('fail') || normalized.includes('conflict')) {
       return 'error';
     }
 
