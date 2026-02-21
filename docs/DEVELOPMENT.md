@@ -217,6 +217,18 @@ backend/
 └── tsconfig.build.json
 ```
 
+### ✅ Alinhamento Runtime (fev/2026)
+
+- O módulo `channels/` no backend está ativo com:
+  - `channels.controller.ts`
+  - `channels.service.ts`
+  - `channels.module.ts`
+  - `dto/create-channel.dto.ts`
+  - `dto/update-channel.dto.ts`
+  - `entities/channel.entity.ts`
+- Endpoints MVP disponíveis: `GET /channels`, `POST /channels`, `PATCH /channels/:id`, `DELETE /channels/:id`.
+- As migrations/seeds atuais do repositório usam nomes em `1707...` (ex.: `1707750000000-CreateInitialTables.ts`), diferentes dos exemplos antigos `1644...` acima.
+
 ### Frontend (React)
 
 ```

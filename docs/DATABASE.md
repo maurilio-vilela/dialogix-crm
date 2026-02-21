@@ -261,34 +261,28 @@ CREATE INDEX idx_contact_tags_tag ON contact_tags(tag_id);
 
 ### 6. **channels** (Canais de Comunicação)
 
-Configurações de canais de atendimento (WhatsApp, Instagram, Telegram, Email).
+Configurações de canais de atendimento (MVP atual em runtime/backend).
 
 ```sql
 CREATE TABLE channels (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  
+
   -- Informações do canal
   name VARCHAR(255) NOT NULL,
-  type VARCHAR(50) NOT NULL, -- whatsapp, instagram, telegram, email
-  
-  -- Configurações e credenciais (criptografadas)
-  credentials JSONB NOT NULL DEFAULT '{}', -- API keys, tokens, etc
-  settings JSONB DEFAULT '{}', -- Configurações específicas do canal
-  
-  -- Status
-  status VARCHAR(20) DEFAULT 'disconnected', -- connected, disconnected, error
-  connection_status JSONB, -- Detalhes da conexão
-  
-  -- Atribuição
-  default_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-  default_department_id UUID REFERENCES departments(id) ON DELETE SET NULL,
-  
+  type VARCHAR(50) NOT NULL, -- whatsapp, instagram, telegram, email, webchat
+
+  -- Status e dados auxiliares
+  status VARCHAR(20) DEFAULT 'disconnected', -- connected, disconnected
+  config JSON,
+  qr_code TEXT,
+  phone_number VARCHAR(20),
+  is_default BOOLEAN DEFAULT false,
+
   -- Timestamps
-  last_sync_at TIMESTAMP,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW(),
-  deleted_at TIMESTAMP NULL
+  deleted_at TIMESTAMP
 );
 
 -- Índices
@@ -296,6 +290,8 @@ CREATE INDEX idx_channels_tenant ON channels(tenant_id);
 CREATE INDEX idx_channels_type ON channels(type);
 CREATE INDEX idx_channels_status ON channels(status);
 ```
+
+> Observação: credenciais avançadas, settings e connection_status descritos em versões conceituais anteriores **não fazem parte do schema atual da migration base**.
 
 ---
 

@@ -149,6 +149,16 @@ src/
 └── database/           # Migrations e seeds
 ```
 
+### ✅ Alinhamento Runtime (fev/2026)
+
+- `ChannelsModule` está habilitado no `AppModule`.
+- O MVP atual de canais expõe CRUD autenticado com isolamento por tenant:
+  - `GET /channels`
+  - `POST /channels`
+  - `PATCH /channels/:id`
+  - `DELETE /channels/:id` (soft delete)
+- Regra de domínio ativa: se um canal for salvo com `is_default=true`, os demais canais do mesmo tenant são desmarcados.
+
 ### 3. **Camada de Dados**
 
 **Tecnologias**: PostgreSQL + TypeORM + Redis
