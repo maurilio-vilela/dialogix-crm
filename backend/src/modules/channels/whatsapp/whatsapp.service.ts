@@ -413,14 +413,13 @@ export class WhatsAppService {
     }
 
     const tokenFile = this.configService.get('WPPCONNECT_TOKEN_FILE');
-    if (!tokenFile) {
-      return null;
-    }
+    const fallbackFile = '/run/secrets/wppconnect_token';
+    const fileToRead = tokenFile || fallbackFile;
 
     try {
-      return readFileSync(tokenFile, 'utf8').trim();
+      return readFileSync(fileToRead, 'utf8').trim();
     } catch (error) {
-      this.logger.warn('Não foi possível ler WPPCONNECT_TOKEN_FILE');
+      this.logger.warn(`Não foi possível ler WPPCONNECT_TOKEN_FILE em ${fileToRead}`);
       return null;
     }
   }
