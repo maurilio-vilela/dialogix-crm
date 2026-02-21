@@ -91,7 +91,7 @@ export function AppLayout() {
 
       <div className="flex min-h-[calc(100vh-56px)] lg:min-h-screen">
         <aside
-          className={`fixed inset-y-0 left-0 z-40 w-64 border-r bg-muted/40 backdrop-blur transition-transform duration-200 lg:static lg:translate-x-0 ${
+          className={`fixed inset-y-0 left-0 z-40 w-64 border-r bg-muted/40 backdrop-blur transition-transform duration-200 lg:static lg:translate-x-0 lg:h-screen ${
             isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
           } ${isCollapsed ? 'lg:w-20' : 'lg:w-64'}`}
         >
@@ -120,7 +120,7 @@ export function AppLayout() {
             </div>
           </div>
 
-          <nav className="px-2 py-4 space-y-1 overflow-y-auto h-[calc(100%-120px)]">
+          <nav className="px-2 py-4 space-y-1 overflow-y-auto h-[calc(100vh-160px)]">
             {navItems.map((item) => {
               const isActive = location.pathname === item.to;
               const Icon = item.icon;
