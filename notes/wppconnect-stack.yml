@@ -28,7 +28,9 @@ services:
         - "traefik.http.routers.wppconnect.rule=Host(`wppconnect.dialogix.com.br`)"
         - "traefik.http.routers.wppconnect.entrypoints=websecure"
         - "traefik.http.routers.wppconnect.tls=true"
+        - "traefik.http.routers.wppconnect.tls.certresolver=myresolver"
         - "traefik.http.services.wppconnect.loadbalancer.server.port=21465"
+        - "traefik.docker.network=traefik-public"
 
 networks:
   traefik-public:
