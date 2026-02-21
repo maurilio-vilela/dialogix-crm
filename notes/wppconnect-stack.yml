@@ -9,6 +9,7 @@ services:
     environment:
       - PORT=21465
       - WPP_PUBLIC_URL=https://wppconnect.dialogix.com.br
+      - WPP_INTERNAL_URL=http://localhost:21465
       - WPP_PORT=21465
       - WPP_HOST=http://localhost
       - WPP_WEBHOOK_URL=https://api-dev.dialogix.com.br/api/v1/channels/whatsapp/webhook

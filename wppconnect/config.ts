@@ -11,10 +11,12 @@ if (secretFile) {
 }
 
 const publicUrl = process.env.WPP_PUBLIC_URL || process.env.WPP_HOST || 'http://localhost';
-let derivedHost = publicUrl;
+const internalUrl = process.env.WPP_INTERNAL_URL;
+const baseUrl = internalUrl || publicUrl;
+let derivedHost = baseUrl;
 let derivedPort = process.env.WPP_PORT || '21465';
 try {
-  const parsed = new URL(publicUrl);
+  const parsed = new URL(baseUrl);
   derivedHost = `${parsed.protocol}//${parsed.hostname}`;
   derivedPort = parsed.port || (parsed.protocol === 'https:' ? '443' : '80');
 } catch (error) {
