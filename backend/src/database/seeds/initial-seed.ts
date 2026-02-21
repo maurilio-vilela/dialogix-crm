@@ -109,7 +109,7 @@ export async function initialSeed() {
     console.log(`✅ Channel created: ${channelId}`);
 
     // 5.1 Create WhatsApp session (if table exists)
-    const [{ exists: whatsappTableExists }] = await queryRunner.query(`
+    const [{ exists: whatsappTableExistsSeed }] = await queryRunner.query(`
       SELECT EXISTS (
         SELECT 1
         FROM information_schema.tables
@@ -118,7 +118,7 @@ export async function initialSeed() {
       ) AS exists
     `);
 
-    if (whatsappTableExists) {
+    if (whatsappTableExistsSeed) {
       console.log('📱 Creating WhatsApp session seed...');
       await queryRunner.query(`
         INSERT INTO whatsapp_sessions (tenant_id, session_id, status, phone_number, display_name, last_update_at, last_heartbeat_at)
