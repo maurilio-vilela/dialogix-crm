@@ -11,6 +11,7 @@ import { ContactsModule } from './modules/contacts/contacts.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { ConversationsModule } from './modules/conversations/conversations.module';
 import { MessagesModule } from './modules/messages/messages.module';
+import { ChannelsModule } from './modules/channels/channels.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { MessagesModule } from './modules/messages/messages.module';
     ChatModule,
     ConversationsModule,
     MessagesModule,
+    ChannelsModule,
   ],
   controllers: [HealthController],
   providers: [
