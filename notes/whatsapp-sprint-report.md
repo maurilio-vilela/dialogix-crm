@@ -35,6 +35,7 @@
 
 ## ✅ Concluído (Backend — parcial)
 - Mapeamento de status ampliado para estados de conexão (onstatechange).
+- Migration da tabela `whatsapp_sessions`.
 
 ## ⏳ Pendente
 ### Backend (WPPConnect)
