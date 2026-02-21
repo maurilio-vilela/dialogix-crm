@@ -505,6 +505,107 @@ Remover contato.
 
 ---
 
+## 📡 Canais (MVP Runtime)
+
+> **Nota:** esta seção reflete o comportamento atual implementado no backend (`/api/v1/channels`).
+> Os retornos deste módulo estão em formato direto (sem envelope `success/data`).
+
+### GET /channels
+
+Listar canais do tenant autenticado.
+
+**Response (200):**
+```json
+[
+  {
+    "id": "uuid",
+    "tenant_id": "uuid",
+    "tenantId": "uuid",
+    "name": "WhatsApp Principal",
+    "type": "whatsapp",
+    "status": "connected",
+    "phone_number": "+5511987654321",
+    "phoneNumber": "+5511987654321",
+    "is_default": true,
+    "isDefault": true,
+    "created_at": "2026-02-20T22:00:00.000Z",
+    "createdAt": "2026-02-20T22:00:00.000Z",
+    "updated_at": "2026-02-20T22:00:00.000Z",
+    "updatedAt": "2026-02-20T22:00:00.000Z"
+  }
+]
+```
+
+---
+
+### POST /channels
+
+Criar canal no tenant autenticado.
+
+**Request Body (mínimo):**
+```json
+{
+  "name": "WhatsApp Comercial",
+  "type": "whatsapp"
+}
+```
+
+**Campos aceitos:**
+- `name` (string, obrigatório)
+- `type` (enum: `whatsapp|instagram|telegram|email|webchat`, obrigatório)
+- `status` (enum: `connected|disconnected`, opcional)
+- `phone_number` ou `phoneNumber` (string, opcional)
+- `is_default` ou `isDefault` (boolean, opcional)
+
+**Regra:** ao enviar `is_default=true`, os outros canais do mesmo tenant são desmarcados como padrão.
+
+**Response (201):**
+```json
+{
+  "id": "uuid",
+  "tenant_id": "uuid",
+  "name": "WhatsApp Comercial",
+  "type": "whatsapp",
+  "status": "disconnected",
+  "phone_number": null,
+  "is_default": false,
+  "created_at": "2026-02-20T22:00:00.000Z",
+  "updated_at": "2026-02-20T22:00:00.000Z"
+}
+```
+
+---
+
+### PATCH /channels/:id
+
+Atualizar canal do tenant autenticado.
+
+**Request Body (exemplo):**
+```json
+{
+  "status": "connected",
+  "is_default": true
+}
+```
+
+**Response (200):** objeto do canal atualizado (mesmo formato de `POST /channels`).
+
+---
+
+### DELETE /channels/:id
+
+Remover canal (soft delete) no tenant autenticado.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Canal removido com sucesso"
+}
+```
+
+---
+
 ## 💬 Conversas
 
 ### GET /conversations
