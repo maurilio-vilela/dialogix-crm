@@ -38,6 +38,10 @@
 - Migration da tabela `whatsapp_sessions`.
 - Seed atualizado para criar sessão WhatsApp demo (com verificação de tabela).
 
+## ✅ Concluído (Infra)
+- WPPConnect Server buildado e rodando no Swarm.
+- Token gerado e secret atualizado.
+
 ## ⏳ Pendente
 ### Backend (WPPConnect)
 - Validar mapeamento de status + campos reais do WPPConnect em produção.
