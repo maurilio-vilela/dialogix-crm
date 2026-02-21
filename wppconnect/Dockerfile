@@ -12,6 +12,7 @@ FROM node:22.21.1-alpine
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 WORKDIR /home/node/app
 RUN apk add chromium
+RUN corepack enable && corepack prepare yarn@4.12.0 --activate
 COPY --from=builder /home/node/app/ .
 
 EXPOSE 21465
