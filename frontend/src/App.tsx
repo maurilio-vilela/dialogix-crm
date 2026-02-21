@@ -8,6 +8,7 @@ import { ContactDetailsPage } from './pages/app/contacts/contact-details';
 import { DashboardPage } from './pages/app/dashboard';
 import { ChatTestPage } from './pages/app/chat-test';
 import { AttendancePage } from './pages/app/attendance';
+import { ChannelsPage } from './pages/app/channels';
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
             <Route path="/contacts" element={<ContactsPage />} />
             <Route path="/contacts/:id" element={<ContactDetailsPage />} />
             <Route path="/inbox" element={<AttendancePage />} />
+            <Route path="/channels" element={<ChannelsPage />} />
             <Route path="/chat-test" element={<ChatTestPage />} />
           </Route>
         </Routes>
