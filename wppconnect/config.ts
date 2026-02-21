@@ -12,7 +12,7 @@ if (secretFile) {
 
 export default {
   secretKey: process.env.WPP_SECRET_KEY || secretFromFile || 'THISISMYSECURETOKEN',
-  host: process.env.WPP_PUBLIC_URL || 'http://localhost',
+  host: 'http://localhost',
   port: process.env.PORT || '21465',
   deviceName: 'Dialogix WPPConnect',
   poweredBy: 'WPPConnect-Server',
