@@ -13,9 +13,36 @@ export async function initialSeed() {
 
     // 0. Clean up existing data
     console.log('🧹 Cleaning up old data...');
+    const baseTables = [
+      'tenants',
+      'users',
+      'contacts',
+      'channels',
+      'tags',
+      'pipelines',
+      'pipeline_stages',
+      'deals',
+      'quick_replies',
+      'conversations',
+      'messages',
+    ];
+
+    const [{ exists: whatsappTableExists }] = await queryRunner.query(`
+      SELECT EXISTS (
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_name = 'whatsapp_sessions'
+      ) AS exists
+    `);
+
+    const tablesToTruncate = whatsappTableExists
+      ? [...baseTables, 'whatsapp_sessions']
+      : baseTables;
+
     await queryRunner.query(`
       TRUNCATE TABLE
-        tenants, users, contacts, channels, tags, pipelines, pipeline_stages, deals, quick_replies, conversations, messages, whatsapp_sessions
+        ${tablesToTruncate.join(', ')}
       RESTART IDENTITY CASCADE
     `);
     console.log('✅ Old data cleaned');
