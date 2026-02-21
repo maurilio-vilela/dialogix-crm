@@ -9,7 +9,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { channelsService, ChannelStatus } from '@/services/channels';
+import {
+  channelsService,
+  ChannelProvider,
+  ChannelStatus,
+} from '@/services/channels';
 import {
   BadgeCheck,
   CheckCircle2,
@@ -47,30 +51,37 @@ export function ChannelsPage() {
   const queryClient = useQueryClient();
   const [isQrOpen, setIsQrOpen] = useState(false);
 
+  const provider = (import.meta.env.VITE_WHATSAPP_PROVIDER || 'wppconnect') as ChannelProvider;
+  const pollingInterval = Number(import.meta.env.VITE_CHANNELS_POLLING_MS || 5000);
+
   const { data: channel, isLoading } = useQuery({
-    queryKey: ['channels', 'whatsapp', 'status'],
-    queryFn: fetchWhatsAppStatus,
-    refetchInterval: 5000,
+    queryKey: ['channels', 'whatsapp', 'status', provider],
+    queryFn: () => fetchWhatsAppStatus(provider),
+    refetchInterval: pollingInterval,
   });
 
   const connectMutation = useMutation({
-    mutationFn: connectWhatsApp,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['channels', 'whatsapp', 'status'] }),
+    mutationFn: () => connectWhatsApp(provider),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['channels', 'whatsapp', 'status', provider] }),
   });
 
   const reconnectMutation = useMutation({
-    mutationFn: reconnectWhatsApp,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['channels', 'whatsapp', 'status'] }),
+    mutationFn: () => reconnectWhatsApp(provider),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['channels', 'whatsapp', 'status', provider] }),
   });
 
   const disconnectMutation = useMutation({
-    mutationFn: disconnectWhatsApp,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['channels', 'whatsapp', 'status'] }),
+    mutationFn: () => disconnectWhatsApp(provider),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['channels', 'whatsapp', 'status', provider] }),
   });
 
   const qrMutation = useMutation({
-    mutationFn: refreshQrCode,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['channels', 'whatsapp', 'status'] }),
+    mutationFn: () => refreshQrCode(provider),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['channels', 'whatsapp', 'status', provider] }),
   });
 
   const status = channel?.status ?? 'disconnected';
