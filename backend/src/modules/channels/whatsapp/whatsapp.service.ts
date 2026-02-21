@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import axios from 'axios';
+import { readFileSync } from 'fs';
 import { Repository } from 'typeorm';
 import { v4 as uuid } from 'uuid';
 import { Channel, ChannelStatus, ChannelType } from '../entities/channel.entity';
@@ -388,7 +389,7 @@ export class WhatsAppService {
 
   private async callWppConnect(method: 'get' | 'post', path: string, data?: Record<string, unknown>) {
     const baseURL = this.configService.get('WPPCONNECT_BASE_URL');
-    const token = this.configService.get('WPPCONNECT_TOKEN');
+    const token = this.getWppConnectToken();
 
     if (!baseURL || !token) {
       throw new NotFoundException('WPPConnect não configurado');
@@ -403,6 +404,25 @@ export class WhatsAppService {
         'Content-Type': 'application/json',
       },
     });
+  }
+
+  private getWppConnectToken() {
+    const direct = this.configService.get('WPPCONNECT_TOKEN');
+    if (direct) {
+      return direct;
+    }
+
+    const tokenFile = this.configService.get('WPPCONNECT_TOKEN_FILE');
+    if (!tokenFile) {
+      return null;
+    }
+
+    try {
+      return readFileSync(tokenFile, 'utf8').trim();
+    } catch (error) {
+      this.logger.warn('Não foi possível ler WPPCONNECT_TOKEN_FILE');
+      return null;
+    }
   }
 
   private async whatsappTableExists() {

@@ -60,7 +60,7 @@ services:
       JWT_EXPIRATION: ${JWT_EXPIRATION:-7d}
       FRONTEND_URL: ${FRONTEND_URL}
       WPPCONNECT_BASE_URL: https://wppconnect.dialogix.com.br
-      WPPCONNECT_TOKEN: ${WPPCONNECT_TOKEN}
+      WPPCONNECT_TOKEN_FILE: /run/secrets/wppconnect_token
       WPP_WEBHOOK_URL: https://api-dev.dialogix.com.br/api/v1/channels/whatsapp/webhook
     volumes:
       - backend_uploads:/app/uploads
@@ -71,6 +71,7 @@ services:
       - postgres_password_secret
       - redis_password_secret
       - jwt_secret
+      - wppconnect_token
     deploy:
       replicas: 1
       restart_policy:
@@ -143,4 +144,6 @@ secrets:
   postgres_password_secret:
     external: true
   jwt_secret:
+    external: true
+  wppconnect_token:
     external: true
