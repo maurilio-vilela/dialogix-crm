@@ -5,19 +5,27 @@ import { Conversation } from './entities/conversation.entity';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
 import { ConversationsQueryDto } from './dto/conversations-query.dto';
+import { Channel } from '../channels/entities/channel.entity';
 
 @Injectable()
 export class ConversationsService {
   constructor(
     @InjectRepository(Conversation)
     private conversationsRepository: Repository<Conversation>,
+    @InjectRepository(Channel)
+    private channelsRepository: Repository<Channel>,
   ) {}
 
   async create(tenantId: string, createConversationDto: CreateConversationDto): Promise<Conversation> {
+    const channelId = await this.resolveChannelId(tenantId, createConversationDto.channelId, createConversationDto.channel);
+
     const conversation = this.conversationsRepository.create({
-      ...createConversationDto,
+      contactId: createConversationDto.contactId,
+      assignedUserId: createConversationDto.assignedUserId,
+      channel: channelId,
       tenantId,
     });
+
     return this.conversationsRepository.save(conversation);
   }
 
@@ -41,10 +49,11 @@ export class ConversationsService {
     if (channelId) {
       queryBuilder.andWhere('conversation.channel = :channelId', { channelId });
     } else if (channel) {
-      queryBuilder.leftJoin('channels', 'channel', 'channel.id = conversation.channel');
-      queryBuilder.andWhere('(LOWER(channel.type) = LOWER(:channel) OR LOWER(channel.name) = LOWER(:channel))', {
-        channel,
-      });
+      queryBuilder
+        .leftJoin('channels', 'ch', 'ch.id = conversation.channel AND ch.tenant_id = conversation.tenantId')
+        .andWhere('(LOWER(ch.type) = LOWER(:channel) OR LOWER(ch.name) = LOWER(:channel))', {
+          channel,
+        });
     }
 
     if (contactId) {
@@ -65,6 +74,7 @@ export class ConversationsService {
 
     return conversations.map((conversation) => ({
       ...conversation,
+      channel_id: conversation.channel,
       last_message: conversation.lastMessage ?? null,
       last_message_at: conversation.lastMessageAt ?? null,
     }));
@@ -79,8 +89,8 @@ export class ConversationsService {
   }
 
   async update(id: string, tenantId: string, updateConversationDto: UpdateConversationDto): Promise<Conversation> {
-    const conversation = await this.findOne(id, tenantId); // Reuses findOne to ensure tenant isolation and existence check
-    
+    const conversation = await this.findOne(id, tenantId);
+
     Object.assign(conversation, updateConversationDto);
 
     return this.conversationsRepository.save(conversation);
@@ -105,5 +115,37 @@ export class ConversationsService {
   async remove(id: string, tenantId: string): Promise<void> {
     const conversation = await this.findOne(id, tenantId);
     await this.conversationsRepository.remove(conversation);
+  }
+
+  private async resolveChannelId(tenantId: string, channelId?: string, channel?: string): Promise<string> {
+    if (channelId) {
+      const byId = await this.channelsRepository.findOne({ where: { id: channelId, tenantId } });
+      if (!byId) throw new NotFoundException('Canal não encontrado para este tenant');
+      return byId.id;
+    }
+
+    if (channel) {
+      const byTypeOrName = await this.channelsRepository
+        .createQueryBuilder('ch')
+        .where('ch.tenantId = :tenantId', { tenantId })
+        .andWhere('(LOWER(ch.type) = LOWER(:channel) OR LOWER(ch.name) = LOWER(:channel))', { channel })
+        .orderBy('ch.isDefault', 'DESC')
+        .addOrderBy('ch.createdAt', 'ASC')
+        .getOne();
+
+      if (!byTypeOrName) {
+        throw new NotFoundException('Canal informado não encontrado para este tenant');
+      }
+
+      return byTypeOrName.id;
+    }
+
+    const defaultChannel = await this.channelsRepository.findOne({ where: { tenantId, isDefault: true } });
+    if (defaultChannel) return defaultChannel.id;
+
+    const firstChannel = await this.channelsRepository.findOne({ where: { tenantId }, order: { createdAt: 'ASC' } });
+    if (firstChannel) return firstChannel.id;
+
+    throw new NotFoundException('Nenhum canal disponível para criar conversa');
   }
 }

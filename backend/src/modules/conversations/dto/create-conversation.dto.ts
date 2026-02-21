@@ -1,14 +1,20 @@
-import { IsString, IsEnum, IsOptional, IsUUID } from 'class-validator';
-import { ConversationStatus, ConversationChannel } from '../entities/conversation.entity';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class CreateConversationDto {
   @IsUUID()
   contactId: string;
 
-  @IsEnum(ConversationChannel)
+  @ApiPropertyOptional({ description: 'Canal por ID (UUID)' })
+  @IsUUID()
   @IsOptional()
+  channelId?: string;
 
-  channel?: ConversationChannel;
+  @ApiPropertyOptional({ description: 'Canal por tipo/nome (ex.: whatsapp)' })
+  @IsString()
+  @IsOptional()
+  channel?: string;
+
   @IsUUID()
   @IsOptional()
   assignedUserId?: string;

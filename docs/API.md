@@ -612,13 +612,13 @@ Remover canal (soft delete) no tenant autenticado.
 
 Listar conversas.
 
-**Query Parameters:**
-- `status`: open, pending, resolved, closed
-- `assigned_user_id`: Filtrar por responsável
-- `channel_id`: Filtrar por canal
-- `department_id`: Filtrar por setor
-- `priority`: low, normal, high, urgent
-- `search`: Buscar em nome do contato ou mensagens
+**Query Parameters (runtime atual):**
+- `status`: open, pending, closed
+- `assignedUserId`: Filtrar por responsável (UUID)
+- `channelId`: Filtrar por canal (UUID)
+- `channel`: Filtrar por tipo/nome do canal (ex.: `whatsapp`)
+- `contactId`: Filtrar por contato (UUID)
+- `search`: Buscar em nome do contato ou última mensagem
 
 **Response (200):**
 ```json
@@ -734,24 +734,22 @@ Obter detalhes da conversa com mensagens.
 
 Criar nova conversa.
 
-**Request Body:**
+**Request Body (runtime atual):**
 ```json
 {
-  "contact_id": "uuid",
-  "channel_id": "uuid",
-  "assigned_user_id": "uuid",
-  "department_id": "uuid",
-  "priority": "normal"
+  "contactId": "uuid",
+  "channelId": "uuid",
+  "channel": "whatsapp",
+  "assignedUserId": "uuid"
 }
 ```
 
-**Response (201):**
-```json
-{
-  "success": true,
-  "data": { ... }
-}
-```
+- `contactId` é obrigatório.
+- `channelId` é opcional.
+- `channel` é opcional (tipo/nome, ex.: `whatsapp`).
+- Se `channelId` e `channel` não forem enviados, o backend usa canal padrão (`is_default=true`) do tenant; se não houver, tenta o primeiro canal disponível.
+
+**Response (201):** objeto da conversa criado (resposta direta, sem envelope `success/data`).
 
 ---
 
@@ -759,24 +757,15 @@ Criar nova conversa.
 
 Atualizar conversa.
 
-**Request Body:**
+**Request Body (runtime atual):**
 ```json
 {
-  "status": "resolved",
-  "priority": "high",
-  "assigned_user_id": "uuid",
-  "department_id": "uuid",
-  "internal_notes": "Problema resolvido com sucesso"
+  "status": "closed",
+  "assignedUserId": "uuid"
 }
 ```
 
-**Response (200):**
-```json
-{
-  "success": true,
-  "data": { ... }
-}
-```
+**Response (200):** objeto da conversa atualizado (resposta direta, sem envelope `success/data`).
 
 ---
 
