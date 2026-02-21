@@ -10,23 +10,10 @@ if (secretFile) {
   }
 }
 
-const publicUrl = process.env.WPP_PUBLIC_URL || process.env.WPP_HOST || 'http://localhost';
-const internalUrl = process.env.WPP_INTERNAL_URL;
-const baseUrl = internalUrl || publicUrl;
-let derivedHost = baseUrl;
-let derivedPort = process.env.WPP_PORT || '21465';
-try {
-  const parsed = new URL(baseUrl);
-  derivedHost = `${parsed.protocol}//${parsed.hostname}`;
-  derivedPort = parsed.port || (parsed.protocol === 'https:' ? '443' : '80');
-} catch (error) {
-  // keep defaults
-}
-
 export default {
   secretKey: process.env.WPP_SECRET_KEY || secretFromFile || 'THISISMYSECURETOKEN',
-  host: derivedHost,
-  port: derivedPort,
+  host: process.env.WPP_PUBLIC_URL || 'http://localhost',
+  port: process.env.PORT || '21465',
   deviceName: 'Dialogix WPPConnect',
   poweredBy: 'WPPConnect-Server',
   startAllSession: true,
