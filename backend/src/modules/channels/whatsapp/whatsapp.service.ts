@@ -298,7 +298,18 @@ export class WhatsAppService {
       return this.sessions.get(tenantId) ?? null;
     }
 
-    const stored = await this.sessionsRepository.findOne({ where: { tenantId } });
+    if (!(await this.whatsappTableExists())) {
+      return null;
+    }
+
+    let stored: WhatsAppSession | null = null;
+    try {
+      stored = await this.sessionsRepository.findOne({ where: { tenantId } });
+    } catch (error) {
+      this.logger.warn('Tabela whatsapp_sessions não encontrada. Ignorando sessão.');
+      return null;
+    }
+
     if (!stored) {
       return null;
     }
@@ -392,6 +403,22 @@ export class WhatsAppService {
         'Content-Type': 'application/json',
       },
     });
+  }
+
+  private async whatsappTableExists() {
+    try {
+      const [{ exists }] = await this.channelsRepository.query(`
+        SELECT EXISTS (
+          SELECT 1
+          FROM information_schema.tables
+          WHERE table_schema = 'public'
+            AND table_name = 'whatsapp_sessions'
+        ) AS exists
+      `);
+      return Boolean(exists);
+    } catch (error) {
+      return false;
+    }
   }
 
   private async fetchDeviceInfo(sessionId: string) {
