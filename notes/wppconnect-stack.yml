@@ -1,0 +1,38 @@
+version: "3.8"
+
+services:
+  wppconnect:
+    image: wppconnect-team/wppconnect-server:latest
+    environment:
+      - PORT=21465
+      - SECRET_KEY_FILE=/run/secrets/wpp_secret_key
+      - HOST=https://wppconnect.dialogix.com.br
+    secrets:
+      - wpp_secret_key
+    networks:
+      - traefik-public
+    volumes:
+      - wppconnect-data:/usr/src/app/tokens
+      - wppconnect-userdata:/usr/src/app/userDataDir
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.wppconnect.rule=Host(`wppconnect.dialogix.com.br`)"
+        - "traefik.http.routers.wppconnect.entrypoints=websecure"
+        - "traefik.http.routers.wppconnect.tls=true"
+        - "traefik.http.services.wppconnect.loadbalancer.server.port=21465"
+
+networks:
+  traefik-public:
+    external: true
+
+volumes:
+  wppconnect-data:
+  wppconnect-userdata:
+
+secrets:
+  wpp_secret_key:
+    external: true
