@@ -21,11 +21,16 @@
 - Logging básico de eventos.
 - QR placeholder disponível para fluxo de UI.
 
+## ✅ Concluído (Backend — parcial)
+- Integração WPPConnect via API REST (start, check, qrcode, logout).
+- Persistência mínima da sessão em tabela `whatsapp_sessions`.
+- Variáveis de ambiente adicionadas em `.env.example`.
+
 ## ⏳ Pendente
 ### Backend (WPPConnect)
-- Integrar WPPConnect de fato (substituir placeholders).
-- Persistir estado mínimo da sessão (DB/cache real).
-- Atualizar status para **connected** via evento real.
+- Validar mapeamento de status + campos reais do WPPConnect.
+- Ajustar captura de número/nome do perfil quando WPPConnect expor.
+- Garantir mudança para **connected** via eventos reais (webhook/polling).
 
 ## 🧭 Próximos passos sugeridos
 1. Levantar estrutura de backend existente e padrão de módulos.
