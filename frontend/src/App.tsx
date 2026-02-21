@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { LoginPage } from './pages/auth/login';
 import { AuthLayout } from './layouts/AuthLayout';
@@ -19,10 +19,11 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
           </Route>
           <Route element={<AppLayout />}>
-            <Route path="/" element={<DashboardPage />} />
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/contacts" element={<ContactsPage />} />
             <Route path="/contacts/:id" element={<ContactDetailsPage />} />
-            <Route path="/atendimento" element={<AttendancePage />} />
+            <Route path="/inbox" element={<AttendancePage />} />
             <Route path="/chat-test" element={<ChatTestPage />} />
           </Route>
         </Routes>
