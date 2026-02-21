@@ -14,7 +14,9 @@ WORKDIR /home/node/app
 RUN apk add chromium
 RUN corepack enable && corepack prepare yarn@4.12.0 --activate
 COPY --from=builder /home/node/app/ .
+COPY ./entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 21465
 
-CMD ["yarn", "dev"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
