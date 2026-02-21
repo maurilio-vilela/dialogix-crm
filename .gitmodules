@@ -1,0 +1,3 @@
+[submodule "vendors/whatsmeow"]
+	path = vendors/whatsmeow
+	url = https://github.com/maurilio-vilela/whatsmeow.git
