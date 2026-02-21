@@ -5,6 +5,7 @@ WORKDIR /home/node
 RUN git clone https://github.com/wppconnect-team/wppconnect-server.git /home/node/app
 WORKDIR /home/node/app
 COPY ./config.ts /home/node/app/src
+RUN corepack enable && corepack prepare yarn@4.12.0 --activate
 RUN yarn install
 
 FROM node:22.21.1-alpine
