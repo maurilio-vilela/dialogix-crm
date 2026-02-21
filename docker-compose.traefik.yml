@@ -59,6 +59,9 @@ services:
       JWT_SECRET_FILE: /run/secrets/jwt_secret
       JWT_EXPIRATION: ${JWT_EXPIRATION:-7d}
       FRONTEND_URL: ${FRONTEND_URL}
+      WPPCONNECT_BASE_URL: https://wppconnect.dialogix.com.br
+      WPPCONNECT_TOKEN: ${WPPCONNECT_TOKEN}
+      WPP_WEBHOOK_URL: https://api-dev.dialogix.com.br/api/v1/channels/whatsapp/webhook
     volumes:
       - backend_uploads:/app/uploads
     networks:
