@@ -395,8 +395,7 @@ export class WhatsAppService {
       throw new NotFoundException('WPPConnect não configurado');
     }
 
-    const prefix = this.configService.get('WPPCONNECT_TOKEN_PREFIX') || 'dialogix';
-    const token = rawToken.includes(':') ? rawToken : `${prefix}:${rawToken}`;
+    const token = rawToken.includes(':') ? rawToken.split(':').slice(-1)[0] : rawToken;
 
     return axios({
       method,
