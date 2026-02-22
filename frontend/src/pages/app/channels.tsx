@@ -236,7 +236,9 @@ export function ChannelsPage() {
           <div className="flex flex-col items-center gap-4">
             {channel?.qrCodeBase64 ? (
               <img
-                src={`data:image/png;base64,${channel.qrCodeBase64}`}
+                src={channel.qrCodeBase64.startsWith('data:image')
+                  ? channel.qrCodeBase64
+                  : `data:image/png;base64,${channel.qrCodeBase64}`}
                 alt="QR Code WhatsApp"
                 className="h-64 w-64 rounded-xl border bg-white p-2"
               />
