@@ -179,6 +179,13 @@ export class WhatsAppService {
     const sessionId = session.sessionId;
     const response = await this.callWppConnect('get', `/api/${sessionId}/check-connection-session`);
     const status = this.resolveStatus(response?.data) ?? session.status;
+    const shouldKeepQrPending =
+      Boolean(session.qrCodeBase64) &&
+      status === 'disconnected' &&
+      typeof response?.data?.status === 'boolean' &&
+      response?.data?.status === false &&
+      typeof response?.data?.message === 'string' &&
+      response?.data?.message.toLowerCase().includes('disconnected');
     const mapped = this.mergeSession(tenantId, {
       status,
       lastHeartbeatAt: new Date().toISOString(),
@@ -187,6 +194,16 @@ export class WhatsAppService {
     });
 
     await this.persistSession(tenantId, mapped);
+
+    if (shouldKeepQrPending) {
+      mapped.status = 'qr_pending';
+      mapped.errorMessage = undefined;
+      if (!mapped.qrCodeBase64) {
+        mapped.qrCodeBase64 = await this.fetchQrCode(sessionId, mapped.qrCodeBase64);
+      }
+      await this.persistSession(tenantId, mapped);
+      return this.toResponse(tenantId, mapped);
+    }
 
     if (status === 'connected') {
       if (!mapped.phone || !mapped.displayName) {
