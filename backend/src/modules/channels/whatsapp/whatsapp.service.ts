@@ -538,11 +538,12 @@ export class WhatsAppService {
       const response = await this.callWppConnect('get', `/api/${sessionId}/host-device`);
       const data = response?.data || {};
       const wid = data?.wid;
-      const phone =
+      const rawPhone =
         (typeof wid === 'string' ? wid : undefined) ||
         (wid && typeof wid === 'object' ? wid.user || wid._serialized : undefined) ||
         data?.phone ||
         data?.number;
+      const phone = typeof rawPhone === 'string' ? rawPhone.split('@')[0] : rawPhone;
       return {
         phone,
         displayName: data?.pushname || data?.displayName || data?.name,
@@ -589,7 +590,18 @@ export class WhatsAppService {
 
   private extractPhone(payload: WppConnectWebhookPayload) {
     const nested = payload?.payload || payload?.data || {};
-    return payload?.phone || nested?.phone || nested?.from || payload?.sender?.id || nested?.sender?.id;
+    const raw =
+      payload?.phone ||
+      nested?.phone ||
+      nested?.from ||
+      payload?.sender?.id ||
+      nested?.sender?.id;
+
+    if (typeof raw === 'string') {
+      return raw.split('@')[0];
+    }
+
+    return raw;
   }
 
   private extractDisplayName(payload: WppConnectWebhookPayload) {

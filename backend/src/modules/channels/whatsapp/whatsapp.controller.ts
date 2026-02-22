@@ -9,34 +9,38 @@ import { WppConnectWebhookPayload } from './whatsapp.webhook.dto';
 @ApiTags('channels')
 @ApiBearerAuth()
 @Controller('channels/whatsapp')
-@UseGuards(AuthGuard('jwt'))
 export class WhatsAppController {
   constructor(private readonly whatsappService: WhatsAppService) {}
 
+  @UseGuards(AuthGuard('jwt'))
   @Get('status')
   @ApiOperation({ summary: 'Obter status do canal WhatsApp' })
   getStatus(@CurrentUser() user: UserPayload) {
     return this.whatsappService.getStatus(user.tenantId);
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Post('connect')
   @ApiOperation({ summary: 'Conectar WhatsApp (iniciar sessão)' })
   connect(@CurrentUser() user: UserPayload) {
     return this.whatsappService.connect(user.tenantId);
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Post('reconnect')
   @ApiOperation({ summary: 'Reconectar WhatsApp (reativar sessão)' })
   reconnect(@CurrentUser() user: UserPayload) {
     return this.whatsappService.reconnect(user.tenantId);
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Post('disconnect')
   @ApiOperation({ summary: 'Desconectar WhatsApp (encerrar sessão)' })
   disconnect(@CurrentUser() user: UserPayload) {
     return this.whatsappService.disconnect(user.tenantId);
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Get('qrcode')
   @ApiOperation({ summary: 'Obter QR Code da sessão WhatsApp' })
   getQrCode(@CurrentUser() user: UserPayload) {
