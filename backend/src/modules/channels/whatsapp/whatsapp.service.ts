@@ -535,7 +535,7 @@ export class WhatsAppService {
   }
 
   private mapStatus(status?: string): WhatsAppChannelStatus | null {
-    if (!status) return null;
+    if (!status || typeof status !== 'string') return null;
 
     const normalized = status.toLowerCase();
 
