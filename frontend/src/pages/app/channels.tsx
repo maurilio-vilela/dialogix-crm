@@ -92,7 +92,7 @@ export function ChannelsPage() {
     disconnectMutation.isPending ||
     qrMutation.isPending;
 
-  const canShowQr = status === 'qr_pending' || !!channel?.qrCodeBase64;
+  const canShowQr = status === 'qr_pending';
 
   const formattedLastUpdate = useMemo(() => {
     if (!channel?.lastUpdateAt) return '-';
@@ -140,7 +140,9 @@ export function ChannelsPage() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-lg border p-4">
               <p className="text-xs text-muted-foreground">Número conectado</p>
-              <p className="mt-2 text-sm font-semibold">{channel?.phone || 'Não conectado'}</p>
+              <p className="mt-2 text-sm font-semibold">
+                {status === 'connected' ? channel?.phone || 'Não informado' : 'Não conectado'}
+              </p>
             </div>
             <div className="rounded-lg border p-4">
               <p className="text-xs text-muted-foreground">Sessão / Instância</p>

@@ -55,6 +55,16 @@ export class WhatsAppService {
   async connect(tenantId: string) {
     const sessionId = await this.ensureSessionId(tenantId);
 
+    await this.persistSession(tenantId, {
+      sessionId,
+      status: 'connecting',
+      qrCodeBase64: undefined,
+      phone: undefined,
+      displayName: undefined,
+      lastUpdateAt: new Date().toISOString(),
+      errorMessage: undefined,
+    });
+
     const response = await this.callWppConnect('post', `/api/${sessionId}/start-session`, {
       webhook: this.configService.get('WPP_WEBHOOK_URL') || undefined,
       waitQrCode: true,
@@ -71,6 +81,7 @@ export class WhatsAppService {
     await this.persistSession(tenantId, session);
     await this.upsertChannel(tenantId, {
       status: ChannelStatus.DISCONNECTED,
+      phoneNumber: null,
     });
 
     this.logger.log(`WhatsApp connect requested for tenant ${tenantId}`);
@@ -80,6 +91,16 @@ export class WhatsAppService {
 
   async reconnect(tenantId: string) {
     const sessionId = await this.ensureSessionId(tenantId);
+
+    await this.persistSession(tenantId, {
+      sessionId,
+      status: 'connecting',
+      qrCodeBase64: undefined,
+      phone: undefined,
+      displayName: undefined,
+      lastUpdateAt: new Date().toISOString(),
+      errorMessage: undefined,
+    });
 
     const response = await this.callWppConnect('post', `/api/${sessionId}/start-session`, {
       webhook: this.configService.get('WPP_WEBHOOK_URL') || undefined,
@@ -105,7 +126,11 @@ export class WhatsAppService {
     const sessionId = await this.ensureSessionId(tenantId, false);
 
     if (sessionId) {
-      await this.callWppConnect('post', `/api/${sessionId}/logout-session`);
+      try {
+        await this.callWppConnect('post', `/api/${sessionId}/logout-session`);
+      } catch (error) {
+        this.logger.warn(`Falha ao desconectar sessão ${sessionId}`);
+      }
     }
 
     await this.upsertChannel(tenantId, {
@@ -164,6 +189,18 @@ export class WhatsAppService {
       await this.upsertChannel(tenantId, {
         status: ChannelStatus.CONNECTED,
         phoneNumber: mapped.phone ?? channel.phoneNumber ?? undefined,
+      });
+    }
+
+    if (status === 'disconnected') {
+      mapped.phone = undefined;
+      mapped.displayName = undefined;
+      mapped.qrCodeBase64 = undefined;
+      await this.persistSession(tenantId, mapped);
+
+      await this.upsertChannel(tenantId, {
+        status: ChannelStatus.DISCONNECTED,
+        phoneNumber: null,
       });
     }
 
@@ -317,6 +354,12 @@ export class WhatsAppService {
 
     if (!stored) {
       return null;
+    }
+
+    const sessionName = this.configService.get('WPPCONNECT_SESSION_NAME') || 'dialogix';
+    if (stored.sessionId !== sessionName) {
+      stored.sessionId = sessionName;
+      await this.sessionsRepository.save(stored);
     }
 
     const session: SessionState = {
