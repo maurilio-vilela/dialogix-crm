@@ -274,8 +274,13 @@ export class WhatsAppService {
   }
 
   private async ensureSessionId(tenantId: string, createIfMissing = true) {
+    const sessionName = this.configService.get('WPPCONNECT_SESSION_NAME') || 'dialogix';
     const stored = await this.sessionsRepository.findOne({ where: { tenantId } });
     if (stored) {
+      if (stored.sessionId !== sessionName) {
+        stored.sessionId = sessionName;
+        await this.sessionsRepository.save(stored);
+      }
       return stored.sessionId;
     }
 
@@ -283,15 +288,14 @@ export class WhatsAppService {
       return null;
     }
 
-    const sessionId = `tenant-${tenantId}`;
     const created = this.sessionsRepository.create({
       tenantId,
-      sessionId,
+      sessionId: sessionName,
       status: 'disconnected',
     });
     await this.sessionsRepository.save(created);
 
-    return sessionId;
+    return sessionName;
   }
 
   private async getSessionState(tenantId: string) {
