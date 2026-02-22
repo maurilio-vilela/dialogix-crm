@@ -389,11 +389,14 @@ export class WhatsAppService {
 
   private async callWppConnect(method: 'get' | 'post', path: string, data?: Record<string, unknown>) {
     const baseURL = this.configService.get('WPPCONNECT_BASE_URL');
-    const token = this.getWppConnectToken();
+    const rawToken = this.getWppConnectToken();
 
-    if (!baseURL || !token) {
+    if (!baseURL || !rawToken) {
       throw new NotFoundException('WPPConnect não configurado');
     }
+
+    const prefix = this.configService.get('WPPCONNECT_TOKEN_PREFIX') || 'dialogix';
+    const token = rawToken.includes(':') ? rawToken : `${prefix}:${rawToken}`;
 
     return axios({
       method,
