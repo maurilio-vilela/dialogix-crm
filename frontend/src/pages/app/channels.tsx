@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -50,6 +50,8 @@ const refreshQrCode = channelsService.refreshWhatsAppQr;
 export function ChannelsPage() {
   const queryClient = useQueryClient();
   const [isQrOpen, setIsQrOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const prevStatusRef = useRef<ChannelStatus>('disconnected');
 
   const provider = (import.meta.env.VITE_WHATSAPP_PROVIDER || 'wppconnect') as ChannelProvider;
   const pollingInterval = Number(import.meta.env.VITE_CHANNELS_POLLING_MS || 5000);
@@ -94,6 +96,22 @@ export function ChannelsPage() {
 
   const canShowQr = status === 'qr_pending';
 
+  useEffect(() => {
+    const previous = prevStatusRef.current;
+    if (previous !== 'connected' && status === 'connected') {
+      setIsQrOpen(false);
+      setSuccessMessage(
+        `WhatsApp conectado com sucesso${channel?.phone ? `: ${channel.phone}` : ''}.`,
+      );
+    }
+
+    if (previous === 'connected' && status !== 'connected') {
+      setSuccessMessage(null);
+    }
+
+    prevStatusRef.current = status;
+  }, [channel?.phone, status]);
+
   const formattedLastUpdate = useMemo(() => {
     if (!channel?.lastUpdateAt) return '-';
     return new Date(channel.lastUpdateAt).toLocaleString('pt-BR');
@@ -136,6 +154,23 @@ export function ChannelsPage() {
           <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
             {statusDescriptions[status]}
           </div>
+
+          {successMessage && (
+            <div className="flex items-start justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
+              <div className="flex items-start gap-2">
+                <BadgeCheck className="mt-0.5 h-4 w-4" />
+                <span>{successMessage}</span>
+              </div>
+              <button
+                type="button"
+                className="text-emerald-700/70 hover:text-emerald-900"
+                onClick={() => setSuccessMessage(null)}
+                aria-label="Fechar aviso"
+              >
+                ✕
+              </button>
+            </div>
+          )}
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-lg border p-4">

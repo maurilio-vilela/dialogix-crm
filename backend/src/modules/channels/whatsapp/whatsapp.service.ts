@@ -70,12 +70,13 @@ export class WhatsAppService {
       waitQrCode: true,
     });
 
+    const resolvedStatus = this.resolveStatus(response?.data) ?? 'connecting';
     const session = this.mergeSession(tenantId, {
       sessionId,
-      status: this.mapStatus(response?.data?.status) ?? 'connecting',
+      status: resolvedStatus,
       qrCodeBase64: this.extractQrCode(response?.data),
       lastUpdateAt: new Date().toISOString(),
-      errorMessage: response?.data?.message,
+      errorMessage: resolvedStatus === 'error' ? response?.data?.message : undefined,
     });
 
     await this.persistSession(tenantId, session);
@@ -107,12 +108,13 @@ export class WhatsAppService {
       waitQrCode: true,
     });
 
+    const resolvedStatus = this.resolveStatus(response?.data) ?? 'connecting';
     const session = this.mergeSession(tenantId, {
       sessionId,
-      status: this.mapStatus(response?.data?.status) ?? 'connecting',
+      status: resolvedStatus,
       qrCodeBase64: this.extractQrCode(response?.data),
       lastUpdateAt: new Date().toISOString(),
-      errorMessage: response?.data?.message,
+      errorMessage: resolvedStatus === 'error' ? response?.data?.message : undefined,
     });
 
     await this.persistSession(tenantId, session);
@@ -166,12 +168,12 @@ export class WhatsAppService {
 
     const sessionId = session.sessionId;
     const response = await this.callWppConnect('get', `/api/${sessionId}/check-connection-session`);
-    const status = this.mapStatus(response?.data?.status) ?? session.status;
+    const status = this.resolveStatus(response?.data) ?? session.status;
     const mapped = this.mergeSession(tenantId, {
       status,
       lastHeartbeatAt: new Date().toISOString(),
       lastUpdateAt: new Date().toISOString(),
-      errorMessage: response?.data?.message,
+      errorMessage: status === 'error' ? response?.data?.message : undefined,
     });
 
     await this.persistSession(tenantId, mapped);
@@ -273,7 +275,7 @@ export class WhatsAppService {
       displayName: this.extractDisplayName(payload) ?? stored.displayName ?? undefined,
       lastHeartbeatAt: new Date().toISOString(),
       lastUpdateAt: new Date().toISOString(),
-      errorMessage: payload?.message ?? stored.errorMessage ?? undefined,
+      errorMessage: status === 'error' ? payload?.message ?? stored.errorMessage ?? undefined : undefined,
     });
 
     await this.persistSession(tenantId, mapped);
@@ -543,16 +545,39 @@ export class WhatsAppService {
     );
   }
 
+  private resolveStatus(payload?: Record<string, any>) {
+    if (!payload) return null;
+
+    const status = this.mapStatus(payload?.status ?? payload?.state ?? payload?.event);
+    const messageStatus = this.mapStatus(payload?.message);
+
+    if (messageStatus && messageStatus !== 'qr_pending') {
+      return messageStatus;
+    }
+
+    return status ?? messageStatus ?? null;
+  }
+
   private mapStatus(status?: string): WhatsAppChannelStatus | null {
     if (!status || typeof status !== 'string') return null;
 
     const normalized = status.toLowerCase();
 
     if (
+      normalized.includes('disconnected') ||
+      normalized.includes('disconnect') ||
+      normalized.includes('close') ||
+      normalized.includes('unpaired') ||
+      normalized.includes('logout')
+    ) {
+      return 'disconnected';
+    }
+
+    if (
       normalized === 'connected' ||
       normalized === 'open' ||
-      normalized.includes('connected') ||
-      normalized.includes('open')
+      normalized.startsWith('connected') ||
+      normalized.startsWith('open')
     ) {
       return 'connected';
     }
@@ -568,15 +593,6 @@ export class WhatsAppService {
       normalized.includes('loading')
     ) {
       return 'connecting';
-    }
-
-    if (
-      normalized.includes('close') ||
-      normalized.includes('disconnect') ||
-      normalized.includes('unpaired') ||
-      normalized.includes('logout')
-    ) {
-      return 'disconnected';
     }
 
     if (normalized.includes('error') || normalized.includes('fail') || normalized.includes('conflict')) {
