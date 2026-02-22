@@ -289,13 +289,24 @@ export class WhatsAppService {
       return { received: true };
     }
 
-    const stored = await this.sessionsRepository.findOne({ where: { sessionId } });
+    let stored = await this.sessionsRepository.findOne({ where: { sessionId } });
     if (!stored) {
-      this.logger.warn(`Webhook para sessão desconhecida: ${sessionId}`);
-      return { received: true };
+      const fallback = await this.sessionsRepository.find();
+      if (fallback.length === 1) {
+        stored = fallback[0];
+        stored.sessionId = sessionId;
+        await this.sessionsRepository.save(stored);
+        this.logger.warn(
+          `Webhook para sessão desconhecida: ${sessionId}. Reconciliado com tenant ${stored.tenantId}`,
+        );
+      } else {
+        this.logger.warn(`Webhook para sessão desconhecida: ${sessionId}`);
+        return { received: true };
+      }
     }
 
     const tenantId = stored.tenantId;
+    this.logger.debug(`Webhook payload: ${JSON.stringify(payload)}`);
     const status =
       this.mapStatus(payload.status ?? payload.event ?? payload?.payload?.state) ??
       (stored.status as WhatsAppChannelStatus);
