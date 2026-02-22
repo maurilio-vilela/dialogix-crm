@@ -71,13 +71,18 @@ export class WhatsAppService {
     });
 
     const resolvedStatus = this.resolveStatus(response?.data) ?? 'connecting';
+    const initialQr = this.extractQrCode(response?.data);
     const session = this.mergeSession(tenantId, {
       sessionId,
       status: resolvedStatus,
-      qrCodeBase64: this.extractQrCode(response?.data),
+      qrCodeBase64: initialQr,
       lastUpdateAt: new Date().toISOString(),
       errorMessage: resolvedStatus === 'error' ? response?.data?.message : undefined,
     });
+
+    if (resolvedStatus === 'qr_pending' && !session.qrCodeBase64) {
+      session.qrCodeBase64 = await this.fetchQrCode(sessionId, session.qrCodeBase64);
+    }
 
     await this.persistSession(tenantId, session);
     await this.upsertChannel(tenantId, {
@@ -109,13 +114,18 @@ export class WhatsAppService {
     });
 
     const resolvedStatus = this.resolveStatus(response?.data) ?? 'connecting';
+    const initialQr = this.extractQrCode(response?.data);
     const session = this.mergeSession(tenantId, {
       sessionId,
       status: resolvedStatus,
-      qrCodeBase64: this.extractQrCode(response?.data),
+      qrCodeBase64: initialQr,
       lastUpdateAt: new Date().toISOString(),
       errorMessage: resolvedStatus === 'error' ? response?.data?.message : undefined,
     });
+
+    if (resolvedStatus === 'qr_pending' && !session.qrCodeBase64) {
+      session.qrCodeBase64 = await this.fetchQrCode(sessionId, session.qrCodeBase64);
+    }
 
     await this.persistSession(tenantId, session);
 
@@ -197,6 +207,11 @@ export class WhatsAppService {
       });
     }
 
+    if (status === 'qr_pending' && !mapped.qrCodeBase64) {
+      mapped.qrCodeBase64 = await this.fetchQrCode(sessionId, mapped.qrCodeBase64);
+      await this.persistSession(tenantId, mapped);
+    }
+
     if (status === 'disconnected') {
       mapped.phone = undefined;
       mapped.displayName = undefined;
@@ -236,8 +251,7 @@ export class WhatsAppService {
       throw new NotFoundException('Sessão WhatsApp não encontrada');
     }
 
-    const response = await this.callWppConnect('get', `/api/${session.sessionId}/qrcode-session`);
-    const qrCodeBase64 = this.extractQrCode(response?.data) ?? session.qrCodeBase64;
+    const qrCodeBase64 = await this.fetchQrCode(session.sessionId, session.qrCodeBase64);
     const mapped = this.mergeSession(tenantId, {
       qrCodeBase64,
       lastUpdateAt: new Date().toISOString(),
@@ -439,7 +453,13 @@ export class WhatsAppService {
     };
   }
 
-  private async callWppConnect(method: 'get' | 'post', path: string, data?: Record<string, unknown>) {
+  private async callWppConnect(
+    method: 'get' | 'post',
+    path: string,
+    data?: Record<string, unknown>,
+    extraHeaders?: Record<string, string>,
+    acceptStatuses: number[] = [200, 201, 202, 204, 304],
+  ) {
     const baseURL = this.configService.get('WPPCONNECT_BASE_URL');
     const rawToken = this.getWppConnectToken();
 
@@ -453,9 +473,11 @@ export class WhatsAppService {
       method,
       url: `${baseURL}${path}`,
       data,
+      validateStatus: (status) => acceptStatuses.includes(status),
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
+        ...extraHeaders,
       },
     });
   }
@@ -511,6 +533,27 @@ export class WhatsAppService {
     } catch (error) {
       this.logger.warn(`Não foi possível obter device info para ${sessionId}`);
       return null;
+    }
+  }
+
+  private async fetchQrCode(sessionId: string, fallback?: string) {
+    try {
+      const response = await this.callWppConnect(
+        'get',
+        `/api/${sessionId}/qrcode-session`,
+        undefined,
+        { 'Cache-Control': 'no-cache' },
+        [200, 201, 202, 204, 304],
+      );
+
+      if (response?.status === 304) {
+        return fallback;
+      }
+
+      return this.extractQrCode(response?.data) ?? fallback;
+    } catch (error) {
+      this.logger.warn(`Não foi possível obter QRCode para ${sessionId}`);
+      return fallback;
     }
   }
 
