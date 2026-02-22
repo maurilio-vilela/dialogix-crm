@@ -182,9 +182,12 @@ export class WhatsAppService {
         if (device?.phone || device?.displayName) {
           mapped.phone = device.phone ?? mapped.phone;
           mapped.displayName = device.displayName ?? mapped.displayName;
-          await this.persistSession(tenantId, mapped);
         }
       }
+
+      mapped.qrCodeBase64 = undefined;
+      mapped.errorMessage = undefined;
+      await this.persistSession(tenantId, mapped);
 
       await this.upsertChannel(tenantId, {
         status: ChannelStatus.CONNECTED,
@@ -493,8 +496,14 @@ export class WhatsAppService {
     try {
       const response = await this.callWppConnect('get', `/api/${sessionId}/host-device`);
       const data = response?.data || {};
+      const wid = data?.wid;
+      const phone =
+        (typeof wid === 'string' ? wid : undefined) ||
+        (wid && typeof wid === 'object' ? wid.user || wid._serialized : undefined) ||
+        data?.phone ||
+        data?.number;
       return {
-        phone: data?.wid || data?.phone || data?.number,
+        phone,
         displayName: data?.pushname || data?.displayName || data?.name,
       };
     } catch (error) {
